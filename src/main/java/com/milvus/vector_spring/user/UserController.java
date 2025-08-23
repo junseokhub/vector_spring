@@ -6,6 +6,7 @@ import com.milvus.vector_spring.user.dto.UserProjectsResponseDto;
 import com.milvus.vector_spring.user.dto.UserResponseDto;
 import com.milvus.vector_spring.user.dto.UserSignUpRequestDto;
 import com.milvus.vector_spring.user.dto.UserUpdateRequestDto;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
@@ -31,7 +32,7 @@ public class UserController {
 
     @PostMapping("/sign-up")
     @NoAuthRequired
-    public ResponseEntity<UserResponseDto> signUpUser(@Validated @RequestBody UserSignUpRequestDto userSignUpRequestDto) throws CustomException {
+    public ResponseEntity<UserResponseDto> signUpUser(@Validated @RequestBody @Valid UserSignUpRequestDto userSignUpRequestDto) throws CustomException {
         User user = userService.signUpUser(userSignUpRequestDto);
         return ResponseEntity.ok(UserResponseDto.userResponseDto(user));
     }

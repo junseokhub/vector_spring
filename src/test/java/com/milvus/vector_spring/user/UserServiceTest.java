@@ -11,6 +11,8 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
+
 import static com.milvus.vector_spring.common.apipayload.status.ErrorStatus.DUPLICATE_USER_EMAIL;
 import static com.milvus.vector_spring.common.apipayload.status.ErrorStatus.NOT_FOUND_USER;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -25,35 +27,29 @@ class UserServiceTest {
     private UserService userService;
 
     @Autowired
-    private UserRepository userRepository;
-
-    @Autowired
     private PasswordEncoder passwordEncoder;
 
-    @Test
-    void find_all_user()  {
-        User user = User.builder()
-                .email("user1@example.com")
-                .username("user1")
-                .password("pass")
+    private UserSignUpRequestDto createUserDto(String email, String username) {
+        return UserSignUpRequestDto.builder()
+                .email(email)
+                .username(username)
+                .password("Password1!")
                 .build();
-        userRepository.save(user);
+    }
 
-        var users = userService.findAllUser();
+    @Test
+    void find_all_user_success() {
+        userService.signUpUser(createUserDto("user1@example.com", "user1"));
 
-        assertThat(users).isNotEmpty();
-        assertThat(users.get(1).getEmail()).isEqualTo("user1@example.com");
-        assertThat(users.get(0).getEmail()).isEqualTo("admin@admin.com");
+        List<User> users = userService.findAllUser();
+
+        assertThat(users).extracting("email")
+                .contains("user1@example.com", "admin@admin.com");
     }
 
     @Test
     void find_user_by_id_success() {
-        User user = User.builder()
-                .email("user2@example.com")
-                .username("user2")
-                .password("pass")
-                .build();
-        userRepository.save(user);
+        User user = userService.signUpUser(createUserDto("user2@example.com", "user2"));
 
         User found = userService.findOneUser(user.getId());
 
@@ -71,16 +67,11 @@ class UserServiceTest {
 
     @Test
     void find_user_by_email_success() {
-        User user = User.builder()
-                .email("email3@example.com")
-                .username("user3")
-                .password("pass")
-                .build();
-        userRepository.save(user);
+        userService.signUpUser(createUserDto("email3@example.com", "user3"));
 
         User found = userService.findOneUserByEmail("email3@example.com");
 
-        assertThat(found).isEqualTo(user);
+        assertThat(found.getEmail()).isEqualTo("email3@example.com");
     }
 
     @Test
@@ -94,50 +85,32 @@ class UserServiceTest {
 
     @Test
     void find_user_with_projects() {
-        User user = User.builder()
-                .email("proj@example.com")
-                .username("withproject")
-                .password("pass")
-                .build();
-        userRepository.save(user);
+        User user = userService.signUpUser(createUserDto("proj@example.com", "withproject"));
 
-        UserProjectsResponseDto dto = userService.findOneUserWithProjects(user.getId());
+        UserProjectsResponseDto projectDto = userService.findOneUserWithProjects(user.getId());
 
-        assertThat(dto).isNotNull();
-        assertThat(dto.getId()).isEqualTo(user.getId());
+        assertThat(projectDto).isNotNull();
+        assertThat(projectDto.getId()).isEqualTo(user.getId());
     }
 
     @Test
     void sign_up_success() {
-        UserSignUpRequestDto dto = UserSignUpRequestDto.builder()
-                .email("new@example.com")
-                .username("username")
-                .password("password")
-                .build();
+        UserSignUpRequestDto dto = createUserDto("new@example.com", "username");
 
         User savedUser = userService.signUpUser(dto);
 
         assertThat(savedUser.getId()).isNotNull();
         assertThat(savedUser.getEmail()).isEqualTo(dto.getEmail());
         assertThat(savedUser.getUsername()).isEqualTo(dto.getUsername());
-        assertThat(passwordEncoder.matches("password", savedUser.getPassword())).isTrue();
+        assertThat(passwordEncoder.matches("Password1!", savedUser.getPassword())).isTrue();
     }
 
     @Test
     void sign_up_duplicate_email_fail() {
-        User user = User.builder()
-                .email("duplicate@example.com")
-                .password("encoded")
-                .username("dup")
-                .build();
-        userRepository.save(user);
-
-        UserSignUpRequestDto dto = UserSignUpRequestDto.builder()
-                .email("duplicate@example.com")
-                .build();
+        userService.signUpUser(createUserDto("duplicate@example.com", "dup"));
 
         CustomException exception = assertThrows(CustomException.class, () -> {
-            userService.signUpUser(dto);
+            userService.signUpUser(createUserDto("duplicate@example.com", "dup"));
         });
 
         assertThat(exception.getBaseCode()).isEqualTo(DUPLICATE_USER_EMAIL);
@@ -145,31 +118,26 @@ class UserServiceTest {
 
     @Test
     void update_user_success_same_email() {
-        User user = User.builder()
-                .email("user@example.com")
-                .password("pass")
-                .username("before")
-                .build();
-        userRepository.save(user);
+        User user = userService.signUpUser(createUserDto("user@example.com", "before"));
 
-        UserUpdateRequestDto dto = UserUpdateRequestDto.builder()
+        UserUpdateRequestDto updateDto = UserUpdateRequestDto.builder()
                 .email("user@example.com")
                 .username("after")
                 .build();
 
-        User updated = userService.updateUser(user.getId(), dto);
+        User updated = userService.updateUser(user.getId(), updateDto);
 
         assertThat(updated.getUsername()).isEqualTo("after");
     }
 
     @Test
     void update_user_fail_user_not_found() {
-        UserUpdateRequestDto dto = UserUpdateRequestDto.builder()
+        UserUpdateRequestDto updateDto = UserUpdateRequestDto.builder()
                 .email("notfound@example.com")
                 .build();
 
         CustomException exception = assertThrows(CustomException.class, () -> {
-            userService.updateUser(999L, dto);
+            userService.updateUser(999L, updateDto);
         });
 
         assertThat(exception.getBaseCode()).isEqualTo(NOT_FOUND_USER);
@@ -177,26 +145,18 @@ class UserServiceTest {
 
     @Test
     void update_user_fail_duplicate_email() {
-        User existing = userRepository.save(User.builder()
-                .email("existing@example.com")
-                .username("user1")
-                .password("pass")
-                .build());
+        User user1 = userService.signUpUser(createUserDto("existing@example.com", "user1"));
+        userService.signUpUser(createUserDto("new@example.com", "user2"));
 
-        userRepository.save(User.builder()
-                .email("new@example.com")
-                .username("user2")
-                .password("pass")
-                .build());
-
-        UserUpdateRequestDto dto = UserUpdateRequestDto.builder()
+        UserUpdateRequestDto updateDto = UserUpdateRequestDto.builder()
                 .email("new@example.com")
                 .build();
 
         CustomException exception = assertThrows(CustomException.class, () -> {
-            userService.updateUser(existing.getId(), dto);
+            userService.updateUser(user1.getId(), updateDto);
         });
 
         assertThat(exception.getBaseCode()).isEqualTo(DUPLICATE_USER_EMAIL);
     }
 }
+

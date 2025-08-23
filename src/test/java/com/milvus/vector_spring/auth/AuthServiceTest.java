@@ -47,7 +47,7 @@ class AuthServiceTest {
     private HttpServletRequest request;
 
     @BeforeAll
-    void initUser() {
+    void setUp() {
         user = userRepository.findByEmail(TEST_EMAIL)
                 .orElseGet(() -> {
                     User newUser = User.builder()
@@ -66,7 +66,7 @@ class AuthServiceTest {
     }
 
     @Test
-    void login_Success() {
+    void login_success() {
         UserLoginRequestDto dto = UserLoginRequestDto.builder()
                 .email(TEST_EMAIL)
                 .password(TEST_PASSWORD)
@@ -80,7 +80,7 @@ class AuthServiceTest {
     }
 
     @Test
-    void login_Fail_WrongPassword() {
+    void login_fail_wrong_password() {
         UserLoginRequestDto dto = UserLoginRequestDto.builder()
                 .email(TEST_EMAIL)
                 .password("wrongpassword")
@@ -91,7 +91,7 @@ class AuthServiceTest {
     }
 
     @Test
-    void check_ValidToken_ReturnsUserInfo() {
+    void check_valid_token() {
         String accessToken = jwtTokenProvider.generateAccessToken(user);
 
         Mockito.when(request.getHeader("Authorization")).thenReturn("Bearer " + accessToken);
