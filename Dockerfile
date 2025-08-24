@@ -1,5 +1,5 @@
 # Step 1: Dependencies
-FROM eclipse-temurin:17 as deps
+FROM docker.io/library/eclipse-temurin:17 as deps
 
 WORKDIR /app
 
@@ -13,7 +13,7 @@ RUN chmod +x ./gradlew
 RUN ./gradlew dependencies
 
 # Step 2: Builder
-FROM eclipse-temurin:17 as builder
+FROM docker.io/library/eclipse-temurin:17 as builder
 
 WORKDIR /app
 
@@ -26,61 +26,17 @@ COPY src src
 RUN ./gradlew bootJar
 
 # Step 3: Runner
-FROM eclipse-temurin:17 as runner
+FROM docker.io/library/eclipse-temurin:17 as runner
 WORKDIR /app
-
-ARG ARG_DATASOURCE_URL
-ARG ARG_DATASOURCE_USERNAME
-ARG ARG_DATASOURCE_PASSWORD
-ARG ARG_JPA_DIALECT
-ARG ARG_DDLAUTO
-ARG ARG_DRIVE_CLASS_NAME
-ARG ARG_CLUSTER_ENDPOINT
-ARG ARG_COLLECTION_NAME
-ARG ARG_OPEN_AI_URL
-ARG ARG_OPEN_AI_EMBEDDING_URL
-ARG ARG_OPEN_AI_KEY
-ARG ARG_REDIS_HOST
-ARG ARG_REDIS_PASSWORD
-ARG ARG_REDIS_PORT
-ARG ARG_SECRET_KEY
-ARG ARG_SECRET_IV_SIZE
-
-ENV SPRING_JPA_SHOW_SQL=false
-ENV SPRING_JPA_PROPERTIES_HIBERNATE_FORMAT_SQL=true
-ENV SPRING_JPA_OPEN_IN_VIEW=false
-ENV SPRING_JPA_GENERATE_DDL=false
-ENV SPRING_JPA_PROPERTIES_HIBERNATE_USE_SQL_COMMENTS=true
-ENV SPRING_MAIN_ALLOW_BEAN_DEFINITION_OVVERIDING=true
-
-ENV SPRING_DATASOURCE_DRIVERCLASSNAME=${ARG_DRIVE_CLASS_NAME}
-ENV SPRING_DATASOURCE_URL=${ARG_DATASOURCE_URL}
-ENV SPRING_DATASOURCE_USERNAME=${ARG_DATASOURCE_USERNAME}
-ENV SPRING_DATASOURCE_PASSWORD=${ARG_DATABASE_PASSWORD}
-ENV SPRING_JPA_PROPERTIES_HIBERNATE_DIALECT=${ARG_JPA_DIALECT}
-ENV SPRING_JPA_HIBERNATE_DDL_AUTO=${ARG_DDLAUTO}
-
-ENV CLUSTER_ENDPOINT=${ARG_CLUSTER_ENDPOINT}
-ENV COLLECTION_NAME=${ARG_COLLECTION_NAME}
-
-ENV OPEN_AI_URL=${OPEN_AI_URL}
-ENV OPEN_AI_EMBEDDING_URL=${OPEN_AI_EMBEDDING_URL}
-
-ENV SPRING_DATA_REDIS_HOST=${ARG_REDIS_HOST}
-ENV SPRING_DATA_REDIS_PORT=${ARG_REDIS_PORT}
-ENV SPRING_DATA_REDIS_PASSWORD=${ARG_REDIS_PASSWORD}
-
-ENV SECRET_KEY=${ARG_SECRET_KEY}
-ENV IV_SIZE=${ARG_SECRET_IV_SIZE}
-
-# Copy the built jar file from the builder stage
-COPY --from=builder /app/build/libs/*.jar app.jar
 
 # Use a non-root user for security (optional)
 RUN addgroup --system --gid 1001 spring && adduser --system --uid 1001 springuser
-RUN chown springuser:spring /app
+
+# Copy the built jar file from the builder stage
+COPY --from=builder /app/build/libs/*.jar app.jar
+RUN chown springuser:spring /app/app.jar
 USER springuser
 
 EXPOSE 8080
 
-ENTRYPOINT ["java","-jar","/app.jar"]
+ENTRYPOINT ["java","-jar","app.jar"]

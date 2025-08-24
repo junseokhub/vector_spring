@@ -9,6 +9,7 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Optional;
 
 import static com.milvus.vector_spring.common.Const.CONTENT_ID;
 import static com.milvus.vector_spring.common.Const.USER_ID;
@@ -24,14 +25,20 @@ public class ContentController {
     public List<ContentResponseDto> findAllContent() {
         List<Content> contentList = contentService.findAllContent();
         return contentList.stream()
-                .map(ContentResponseDto::contentResponseDto)
+                .map(ContentResponseDto::from)
                 .toList();
     }
 
     @GetMapping("/{id}")
     public ContentResponseDto findOneContentById(@PathVariable Long id) {
         Content content = contentService.findOneContentById(id);
-        return ContentResponseDto.contentResponseDto(content);
+        return ContentResponseDto.from(content);
+    }
+
+    @GetMapping("/detail/{key}")
+    public ContentResponseDto findOneContentByKey(@PathVariable String key) {
+        Optional<Content> content = contentService.findOneContentByContnetKey(key);
+        return ContentResponseDto.from(content.orElse(null));
     }
 
     @PostMapping("/create")
@@ -40,7 +47,7 @@ public class ContentController {
             @Validated @RequestBody ContentCreateRequestDto contentCreateRequestDto
             ) {
         Content content = contentService.createContent(userId, contentCreateRequestDto);
-        return ResponseEntity.ok(ContentResponseDto.contentResponseDto(content));
+        return ResponseEntity.ok(ContentResponseDto.from(content));
     }
 
     @PostMapping("/update")
@@ -49,6 +56,6 @@ public class ContentController {
             @Validated @RequestBody ContentUpdateRequestDto contentUpdateRequestDto
             ) {
         Content content = contentService.updateContent(id, contentUpdateRequestDto);
-        return ResponseEntity.ok(ContentResponseDto.contentResponseDto(content));
+        return ResponseEntity.ok(ContentResponseDto.from(content));
     }
 }

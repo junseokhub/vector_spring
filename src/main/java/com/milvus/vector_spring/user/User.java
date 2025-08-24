@@ -1,9 +1,6 @@
 package com.milvus.vector_spring.user;
 
 import com.milvus.vector_spring.common.BaseEntity;
-import com.milvus.vector_spring.content.Content;
-import com.milvus.vector_spring.invite.Invite;
-import com.milvus.vector_spring.project.Project;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Builder;
@@ -14,7 +11,6 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
@@ -42,21 +38,6 @@ public class User extends BaseEntity implements UserDetails {
 
     @Column(name = "login_at")
     private LocalDateTime loginAt;
-
-    @OneToMany(mappedBy = "createdBy", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<Content> createdContentUser = new ArrayList<>();
-
-    @OneToMany(mappedBy = "updatedBy", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<Content> updatedContentUser = new ArrayList<>();
-
-    @OneToMany(mappedBy = "createdBy", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<Project> createdProjectUser = new ArrayList<>();
-
-    @OneToMany(mappedBy = "updatedBy", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<Project> updatedProjectUser = new ArrayList<>();
-
-    @OneToMany(mappedBy = "createdBy", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<Invite> invites = new ArrayList<>();
 
     @Builder
     public User(Long id, String email, String username, String password, String role, LocalDateTime loginAt) {

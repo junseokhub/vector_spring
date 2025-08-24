@@ -3,13 +3,17 @@ package com.milvus.vector_spring.project;
 import com.milvus.vector_spring.common.apipayload.status.ErrorStatus;
 import com.milvus.vector_spring.common.exception.CustomException;
 import com.milvus.vector_spring.common.service.EncryptionService;
+import com.milvus.vector_spring.content.Content;
+import com.milvus.vector_spring.content.ContentRepository;
 import com.milvus.vector_spring.milvus.MilvusService;
+import com.milvus.vector_spring.project.dto.ProjectContentsResponseDto;
 import com.milvus.vector_spring.project.dto.ProjectCreateRequestDto;
 import com.milvus.vector_spring.project.dto.ProjectDeleteRequestDto;
 import com.milvus.vector_spring.project.dto.ProjectUpdateRequestDto;
 import com.milvus.vector_spring.user.User;
 import com.milvus.vector_spring.user.UserService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -20,11 +24,13 @@ import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class ProjectService  {
 
     private final ProjectRepository projectRepository;
     private final UserService userService;
     private final EncryptionService encryptionService;
+    private final ContentRepository contentRepository;
     private final MilvusService milvusService;
 
     public List<Project> findAllProject() {
@@ -41,29 +47,43 @@ public class ProjectService  {
                 .orElseThrow(() -> new CustomException(ErrorStatus.NOT_FOUND_PROJECT));
     }
 
-    public Project findOneProjectWithContents(String key) {
-        return projectRepository.findOneProjectWithContents(key)
+    public ProjectContentsResponseDto findOneProjectWithContents(String key) {
+        Project project = projectRepository.findOneProjectWithContents(key)
                 .orElseThrow(() -> new CustomException(ErrorStatus.NOT_FOUND_PROJECT));
+//        List<Content> contentsz = project.getContents();
+        List<Content> contents = contentRepository.findByProjectKey(project.getKey());
+        return ProjectContentsResponseDto.projectContentsResponseDto(project, contents);
     }
 
     @Transactional
     public Project createProject(ProjectCreateRequestDto dto) {
-        User user = userService.findOneUser(dto.getCreatedUserId());
-        Project project = Project.builder()
-                .name(dto.getName())
-                .key(String.valueOf(UUID.randomUUID()))
-                .openAiKey(dto.getOpenAiKey() != null ? encryptionService.encryptData(dto.getOpenAiKey()) : null)
-                .embedModel(dto.getEmbedModel() != null ? dto.getEmbedModel() : null)
-                .chatModel(dto.getChatModel() != null ? dto.getChatModel() : null)
-                .dimensions(dto.getDimensions() != 0 ? dto.getDimensions() : 0)
-                .prompt(dto.getPrompt() != null ? dto.getPrompt() : null)
-                .totalToken(0)
-                .createdBy(user)
-                .updatedBy(user)
-                .build();
-        Project savedProject = projectRepository.save(project);
-        milvusService.createSchema(savedProject.getId(), (int) dto.getDimensions());
-        return savedProject;
+        try {
+            User user = userService.findOneUser(dto.getCreatedUserId());
+            Project project = Project.builder()
+                    .name(dto.getName())
+                    .key(String.valueOf(UUID.randomUUID()))
+                    .dimensions(dto.getDimensions())
+                    .totalToken(0)
+                    .createdBy(user)
+                    .updatedBy(user)
+                    .build();
+            Project savedProject = projectRepository.save(project);
+            milvusService.createSchema(savedProject.getId(), (int) dto.getDimensions());
+
+            Content defaultContent = Content.builder()
+                    .key(UUID.randomUUID().toString())
+                    .title("[Default] 웰컴 메세지")
+                    .answer("안녕하세요.")
+                    .project(savedProject)
+                    .createdBy(user)
+                    .updatedBy(user)
+                    .build();
+            contentRepository.save(defaultContent);
+            return savedProject;
+        } catch (Exception e) {
+            log.error("Create Project Error: {}", e.getMessage());
+            throw new CustomException(ErrorStatus.MILVUS_DATABASE_ERROR);
+        }
     }
 
     @Transactional
@@ -75,12 +95,12 @@ public class ProjectService  {
         Project updateProject = Project.builder()
                 .id(project.getId())
                 .key(project.getKey())
-                .name(dto.getName())
+                .name(dto.getName() != null && !dto.getName().isEmpty() ? dto.getName() : project.getName())
                 .openAiKey(secretKey)
-                .chatModel(dto.getChatModel())
-                .embedModel(dto.getEmbedModel())
-                .dimensions(dto.getDimensions())
-                .prompt(dto.getPrompt())
+                .chatModel(dto.getChatModel() != null && !dto.getChatModel().isEmpty() ? dto.getChatModel() : project.getChatModel())
+                .embedModel(dto.getEmbedModel() != null ? dto.getEmbedModel() : project.getEmbedModel())
+                .dimensions(3072)
+                .prompt(dto.getPrompt() != null ? dto.getPrompt() : project.getPrompt())
                 .createdBy(project.getCreatedBy())
                 .createdAt(project.getCreatedAt())
                 .updatedBy(user)

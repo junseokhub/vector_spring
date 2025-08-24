@@ -33,7 +33,7 @@ public class AuthService {
     private final HttpServletRequest request;
 
     public UserLoginResponseDto login(UserLoginRequestDto userLoginRequestDto) {
-        User user = userDetailServiceImpl.loadUserByUsername(userLoginRequestDto.getEmail());
+        User user = userService.findOneUserByEmail(userLoginRequestDto.getEmail());
         if (!bCryptPasswordEncoder.matches(userLoginRequestDto.getPassword(), user.getPassword())) {
             throw new CustomException(ErrorStatus.NOT_PASSWORD_MATCHES);
         };

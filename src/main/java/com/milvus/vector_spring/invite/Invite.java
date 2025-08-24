@@ -21,11 +21,11 @@ public class Invite extends BaseEntity {
     @Column(name = "received_email")
     private String receivedEmail;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "invited_id", nullable = false)
     private User createdBy;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "project_id", nullable = false)
     private Project project;
 

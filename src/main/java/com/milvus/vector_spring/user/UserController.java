@@ -6,7 +6,6 @@ import com.milvus.vector_spring.user.dto.UserProjectsResponseDto;
 import com.milvus.vector_spring.user.dto.UserResponseDto;
 import com.milvus.vector_spring.user.dto.UserSignUpRequestDto;
 import com.milvus.vector_spring.user.dto.UserUpdateRequestDto;
-import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
@@ -26,21 +25,21 @@ public class UserController {
     public List<UserResponseDto> findAllUser() {
         List<User> users = userService.findAllUser();
         return users.stream()
-                .map(UserResponseDto::userResponseDto)
+                .map(UserResponseDto::from)
                 .toList();
     }
 
     @PostMapping("/sign-up")
     @NoAuthRequired
-    public ResponseEntity<UserResponseDto> signUpUser(@Validated @RequestBody @Valid UserSignUpRequestDto userSignUpRequestDto) throws CustomException {
+    public ResponseEntity<UserResponseDto> signUpUser(@Validated @RequestBody UserSignUpRequestDto userSignUpRequestDto) throws CustomException {
         User user = userService.signUpUser(userSignUpRequestDto);
-        return ResponseEntity.ok(UserResponseDto.userResponseDto(user));
+        return ResponseEntity.ok(UserResponseDto.from(user));
     }
 
     @PostMapping("/update/{id}")
     public ResponseEntity<UserResponseDto> updateUser(@PathVariable() Long id, @Validated @RequestBody UserUpdateRequestDto userUpdateRequestDto) throws CustomException {
         User user = userService.updateUser(id, userUpdateRequestDto);
-        return ResponseEntity.ok(UserResponseDto.userResponseDto(user));
+        return ResponseEntity.ok(UserResponseDto.from(user));
     }
 
     @GetMapping("/project/{id}")

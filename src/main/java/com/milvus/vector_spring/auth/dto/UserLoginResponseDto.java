@@ -1,12 +1,14 @@
 package com.milvus.vector_spring.auth.dto;
 
+import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
 
 @Getter
-@Builder
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class UserLoginResponseDto {
     private Long id;
     private String email;
@@ -15,6 +17,7 @@ public class UserLoginResponseDto {
     private String accessToken;
     private LocalDateTime loginAt;
 
+    @Builder
     public UserLoginResponseDto(Long id, String email, String username, String role, String accessToken, LocalDateTime loginAt) {
         this.id = id;
         this.email = email;

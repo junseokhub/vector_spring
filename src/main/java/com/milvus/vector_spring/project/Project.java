@@ -1,8 +1,6 @@
 package com.milvus.vector_spring.project;
 
 import com.milvus.vector_spring.common.BaseEntity;
-import com.milvus.vector_spring.content.Content;
-import com.milvus.vector_spring.invite.Invite;
 import com.milvus.vector_spring.user.User;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
@@ -11,8 +9,6 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
 
 @Entity
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
@@ -48,18 +44,15 @@ public class Project extends BaseEntity {
     @Column(name = "total_token")
     private long totalToken;
 
-    @OneToMany(mappedBy = "project", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<Content> contents = new ArrayList<>();
+//    @OneToMany(mappedBy = "project")
+//    private List<Content> contents;
 
-    @OneToMany(mappedBy = "project", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<Invite> invites = new ArrayList<>();
-
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "created_user_id", nullable = false)
     private User createdBy;
 
-    @ManyToOne
-    @JoinColumn(name = "updated_user_id", nullable = true)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "updated_user_id")
     private User updatedBy;
 
     @Builder

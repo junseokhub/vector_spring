@@ -46,6 +46,10 @@ class AuthServiceTest {
 
     private HttpServletRequest request;
 
+    private UserLoginRequestDto loginRequestDto(String email, String password) {
+        return new UserLoginRequestDto(email, password);
+    }
+
     @BeforeAll
     void setUp() {
         user = userRepository.findByEmail(TEST_EMAIL)
@@ -67,10 +71,7 @@ class AuthServiceTest {
 
     @Test
     void login_success() {
-        UserLoginRequestDto dto = UserLoginRequestDto.builder()
-                .email(TEST_EMAIL)
-                .password(TEST_PASSWORD)
-                .build();
+        UserLoginRequestDto dto = loginRequestDto(TEST_EMAIL, TEST_PASSWORD);
 
         UserLoginResponseDto response = authService.login(dto);
 
@@ -81,10 +82,7 @@ class AuthServiceTest {
 
     @Test
     void login_fail_wrong_password() {
-        UserLoginRequestDto dto = UserLoginRequestDto.builder()
-                .email(TEST_EMAIL)
-                .password("wrongpassword")
-                .build();
+        UserLoginRequestDto dto = loginRequestDto(TEST_EMAIL, "wrongpassword");
 
         CustomException exception = assertThrows(CustomException.class, () -> authService.login(dto));
         assertThat(exception.getBaseCode()).isEqualTo(ErrorStatus.NOT_PASSWORD_MATCHES);

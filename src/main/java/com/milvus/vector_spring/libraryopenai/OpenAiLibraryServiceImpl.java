@@ -22,24 +22,12 @@ public class OpenAiLibraryServiceImpl implements OpenAiLibraryService {
                 .build();
     }
 
-    private ChatModel findModel(String model) {
-        return switch (model) {
-            case "GPT_4O_LATEST" -> ChatModel.CHATGPT_4O_LATEST;
-            case "GPT_4O_MINI" -> ChatModel.GPT_4O_MINI;
-            case "GPT_4O" -> ChatModel.GPT_4O;
-            case "GPT_4_1" -> ChatModel.GPT_4_1;
-            default -> throw new CustomException(ErrorStatus.UNKNOWING_MODEL);
-        };
-    }
-
-
     @Override
     public ChatCompletion chat(OpenAiChatLibraryRequestDto openAiChatLibraryRequestDto) {
         try {
-            ChatModel model = findModel(openAiChatLibraryRequestDto.getModel());
             ChatCompletionCreateParams.Builder builder = ChatCompletionCreateParams.builder()
                     .addUserMessage(openAiChatLibraryRequestDto.getUserMessages())
-                    .model(model);
+                    .model(openAiChatLibraryRequestDto.getModel());
 
             if (openAiChatLibraryRequestDto.getSystemMesasges() != null &&
                     !openAiChatLibraryRequestDto.getSystemMesasges().isBlank()) {

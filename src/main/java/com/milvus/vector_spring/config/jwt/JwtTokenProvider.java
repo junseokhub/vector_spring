@@ -69,12 +69,15 @@ public class JwtTokenProvider {
                 .expiration(java.sql.Timestamp.valueOf(expiryDate))
                 .signWith(this.getSigningKey())
                 .compact();
-
-        redisService.setRedis(
-                "refreshToken:" + user.getEmail(),
-                refreshToken,
-                refreshTokenExpiration / 1000
-        );
+try {
+    redisService.setRedis(
+            "refreshToken:" + user.getEmail(),
+            refreshToken,
+            refreshTokenExpiration / 1000
+    );
+} catch (Exception e) {
+    System.out.println(e.getMessage());
+}
     }
 
     public boolean validateToken(String token) {

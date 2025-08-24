@@ -1,74 +1,110 @@
 package com.milvus.vector_spring.config;
 
-import com.fasterxml.jackson.annotation.JsonTypeInfo;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
-import com.fasterxml.jackson.databind.jsontype.BasicPolymorphicTypeValidator;
-import com.fasterxml.jackson.databind.jsontype.PolymorphicTypeValidator;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
-import com.milvus.vector_spring.chat.cache.ProjectCacheDto;
+import io.lettuce.core.SocketOptions;
+import io.lettuce.core.cluster.ClusterClientOptions;
+import io.lettuce.core.cluster.ClusterTopologyRefreshOptions;
+import io.lettuce.core.resource.ClientResources;
+import io.lettuce.core.resource.DefaultClientResources;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.data.redis.connection.RedisClusterConfiguration;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
-import org.springframework.data.redis.connection.RedisStandaloneConfiguration;
+import org.springframework.data.redis.connection.lettuce.LettuceClientConfiguration;
 import org.springframework.data.redis.connection.lettuce.LettuceConnectionFactory;
 import org.springframework.data.redis.core.RedisTemplate;
-import org.springframework.data.redis.serializer.Jackson2JsonRedisSerializer;
+import org.springframework.data.redis.serializer.GenericJackson2JsonRedisSerializer;
 import org.springframework.data.redis.serializer.StringRedisSerializer;
-import org.springframework.web.client.RestClient;
 
+import java.net.InetAddress;
+import java.time.Duration;
+import java.util.Arrays;
+@Slf4j
 @Configuration
+//@EnableRedisHttpSession
 public class RedisConfig {
-    @Value("${spring.data.redis.host}")
-    private String hostName;
-
-    @Value("${spring.data.redis.port}")
-    private int port;
+    @Value("${spring.data.redis.cluster.nodes}")
+    private String[] clusterNodes;
 
     @Value("${spring.data.redis.password}")
     private String password;
 
-    @Bean
-    public RedisConnectionFactory redisConnectionFactory() {
-        RedisStandaloneConfiguration redisStandaloneConfiguration = new RedisStandaloneConfiguration();
-        redisStandaloneConfiguration.setHostName(hostName);
-        redisStandaloneConfiguration.setPort(port);
-        redisStandaloneConfiguration.setPassword(password);
-        return new LettuceConnectionFactory(redisStandaloneConfiguration);
+    @Value("${redis.cluster.master.ips}")
+    private String[] masterIps;
+
+    @Value("${redis.cluster.slave.ips}")
+    private String[] slaveIps;
+
+    @Bean(destroyMethod = "shutdown")
+    public ClientResources lettuceClientResources() {
+        return DefaultClientResources.builder()
+                .dnsResolver(hostname -> {
+                    try {
+                        String ip = getIpFromEnv(hostname);
+                        return new InetAddress[]{InetAddress.getByName(ip)};
+                    } catch (Exception e) {
+                        throw new RuntimeException("DNS Resolution failed for hostname: " + hostname, e);
+                    }
+                })
+                .build();
     }
 
-    @Bean(name = "objectRedisTemplate")
-    public RedisTemplate<String, Object> objectRedisTemplate(RedisConnectionFactory factory) {
+    private String getIpFromEnv(String hostname) {
+        return switch (hostname) {
+            case "redis-leader-0" -> masterIps[0].split(":")[0];
+            case "redis-leader-1" -> masterIps[1].split(":")[0];
+            case "redis-leader-2" -> masterIps[2].split(":")[0];
+            case "redis-follower-0" -> slaveIps[0].split(":")[0];
+            case "redis-follower-1" -> slaveIps[1].split(":")[0];
+            case "redis-follower-2" -> slaveIps[2].split(":")[0];
+            default -> hostname; };
+    }
+
+    @Bean
+    public LettuceConnectionFactory redisConnectionFactory(ClientResources clientResources) {
+        SocketOptions socketOptions = SocketOptions.builder()
+                .connectTimeout(Duration.ofMillis(100L))
+                .keepAlive(true)
+                .build();
+
+        RedisClusterConfiguration clusterConfig = new RedisClusterConfiguration(Arrays.asList(clusterNodes));
+        clusterConfig.setPassword(password);
+
+        ClusterTopologyRefreshOptions topologyRefreshOptions = ClusterTopologyRefreshOptions.builder()
+                .dynamicRefreshSources(true)
+                .enableAllAdaptiveRefreshTriggers()
+                .enablePeriodicRefresh(Duration.ofSeconds(30))
+                .build();
+
+        ClusterClientOptions clientOptions = ClusterClientOptions.builder()
+                .pingBeforeActivateConnection(true)
+                .autoReconnect(true)
+                .socketOptions(socketOptions)
+                .topologyRefreshOptions(topologyRefreshOptions)
+                .maxRedirects(3).build();
+
+        LettuceClientConfiguration clientConfig = LettuceClientConfiguration.builder()
+                .clientResources(clientResources)
+                .clientOptions(clientOptions)
+                .build();
+
+        return new LettuceConnectionFactory(clusterConfig, clientConfig);
+    }
+
+    @Bean
+    public RedisTemplate<String, Object> redisTemplate(RedisConnectionFactory factory) {
         RedisTemplate<String, Object> template = new RedisTemplate<>();
         template.setConnectionFactory(factory);
         template.setKeySerializer(new StringRedisSerializer());
-        template.setValueSerializer(new StringRedisSerializer());
+        template.setValueSerializer(new GenericJackson2JsonRedisSerializer());
         return template;
     }
 
-    @Bean(name = "projectRedisTemplate")
-    public RedisTemplate<String, ProjectCacheDto> projectRedisTemplate(RedisConnectionFactory factory, RestClient.Builder builder) {
-        RedisTemplate<String, ProjectCacheDto> template = new RedisTemplate<>();
-        template.setConnectionFactory(factory);
-        template.setKeySerializer(new StringRedisSerializer());
 
-        ObjectMapper mapper = new ObjectMapper();
-        mapper.registerModule(new JavaTimeModule()); // LocalDateTime 지원
-        mapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
 
-        PolymorphicTypeValidator ptv = BasicPolymorphicTypeValidator.builder()
-                .allowIfSubType(ProjectCacheDto.class)
-                .build();
-
-        mapper.activateDefaultTyping(ptv, ObjectMapper.DefaultTyping.NON_FINAL, JsonTypeInfo.As.PROPERTY);
-
-        Jackson2JsonRedisSerializer<ProjectCacheDto> serializer = new Jackson2JsonRedisSerializer<>(mapper, ProjectCacheDto.class);
-
-        template.setValueSerializer(serializer);
-        template.afterPropertiesSet();
-
-        return template;
-    }
-
+//    @Bean
+//    public RedisSessionRepository sessionRepository(RedisConnectionFactory redisConnectionFactory) {
+//        return new RedisSessionRepository(redisConnectionFactory);
+//    }
 }

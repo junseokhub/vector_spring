@@ -1,11 +1,13 @@
 package com.milvus.vector_spring.common.exception;
 
-import com.milvus.vector_spring.common.apipayload.ApiResponse;
 import com.milvus.vector_spring.common.apipayload.BaseCode;
+import com.milvus.vector_spring.common.apipayload.dto.ErrorResponseDto;
 import org.springframework.context.support.DefaultMessageSourceResolvable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.authorization.AuthorizationDeniedException;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.web.HttpRequestMethodNotSupportedException;
+import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -14,52 +16,51 @@ import java.util.stream.Collectors;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
-    @ExceptionHandler(RuntimeException.class)
-    public ResponseEntity<ApiResponse> handleRuntimeException(RuntimeException e) {
-        String errorMessage = e.getMessage() != null ? e.getMessage() : "Runtime exception occurred";
-        return ResponseEntity
-                .status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(new ApiResponse("500", errorMessage));
-    }
 
-    @ExceptionHandler(AuthorizationDeniedException.class)
-    public ResponseEntity<ApiResponse> handleAccessDeniedException(AuthorizationDeniedException e) {
-        return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                .body(new ApiResponse("403", "You do not have access permission."));
+    @ExceptionHandler(AccessDeniedException.class)
+    public ResponseEntity<ErrorResponseDto> handleAccessDeniedException(AccessDeniedException e) {
+        return failResponse(HttpStatus.FORBIDDEN, "You do not have access permission.");
     }
 
     @ExceptionHandler(CustomException.class)
-    public ResponseEntity<ApiResponse> handleCustomException(CustomException e) {
+    public ResponseEntity<ErrorResponseDto> handleCustomException(CustomException e) {
         BaseCode errorCode = e.getBaseCode();
-        return handleExceptionInternal(errorCode);
-    }
-
-    private ResponseEntity<ApiResponse> handleExceptionInternal(BaseCode errorCode) {
-        return ResponseEntity.status(errorCode.getReasonHttpStatus().getHttpStatus())
-                .body(ApiResponse.fail(errorCode));
+        ErrorResponseDto response = errorCode.getReasonHttpStatus();
+        return ResponseEntity.status(response.getHttpStatus()).body(response);
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ResponseEntity<ApiResponse> handleBindException(MethodArgumentNotValidException ex) {
-        String errorCodes = ex.getBindingResult().getAllErrors()
+    public ResponseEntity<ErrorResponseDto> handleBindException(MethodArgumentNotValidException ex) {
+        String errorMessages = ex.getBindingResult().getAllErrors()
                 .stream()
                 .map(DefaultMessageSourceResolvable::getDefaultMessage)
-                .collect(Collectors.joining(","));
+                .collect(Collectors.joining(", "));
+        return failResponse(HttpStatus.BAD_REQUEST, errorMessages);
+    }
 
-        return ResponseEntity
-                .status(HttpStatus.BAD_REQUEST)
-                .body(new ApiResponse("400", errorCodes));
+    @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
+    public ResponseEntity<ErrorResponseDto> handleMethodNotSupported(HttpRequestMethodNotSupportedException e) {
+        String msg = "HTTP method not supported: " + e.getMethod();
+        return failResponse(HttpStatus.METHOD_NOT_ALLOWED, msg);
+    }
+
+    @ExceptionHandler(MissingServletRequestParameterException.class)
+    public ResponseEntity<ErrorResponseDto> handleMissingParam(MissingServletRequestParameterException e) {
+        String msg = "Missing required parameter: " + e.getParameterName();
+        return failResponse(HttpStatus.BAD_REQUEST, msg);
     }
 
     @ExceptionHandler(Exception.class)
-    public ResponseEntity<ApiResponse> handleAllExceptions(Exception ex) {
+    public ResponseEntity<ErrorResponseDto> handleAllExceptions(Exception ex) {
         String errorMessage = ex.getMessage() != null ? ex.getMessage() : "An unexpected server error occurred";
+        return failResponse(HttpStatus.INTERNAL_SERVER_ERROR, errorMessage);
+    }
 
-        return ResponseEntity
-                .status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(new ApiResponse(
-                        "500",
-                        errorMessage
-                ));
+    private ResponseEntity<ErrorResponseDto> failResponse(HttpStatus status, String message) {
+        ErrorResponseDto response = ErrorResponseDto.builder()
+                .statusCode(String.valueOf(status.value()))
+                .message(message)
+                .build();
+        return ResponseEntity.status(status).body(response);
     }
 }

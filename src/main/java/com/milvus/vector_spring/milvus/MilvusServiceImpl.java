@@ -99,7 +99,7 @@ public class MilvusServiceImpl implements MilvusService {
                     .maxLength(3092)
                     .build());
 
-            List<IndexParam> indexParamList = createIndex(collectionName + dbKey);
+            List<IndexParam> indexParamList = createIndex();
             CreateCollectionReq createCollectionReq = CreateCollectionReq.builder()
                     .collectionName(collectionName + dbKey)
                     .collectionSchema(schema)
@@ -115,7 +115,7 @@ public class MilvusServiceImpl implements MilvusService {
         }
     }
 
-    private List<IndexParam> createIndex(String collectionName) {
+    private List<IndexParam> createIndex() {
         try {
             IndexParam indexParamForVectorField = IndexParam.builder()
                     .fieldName("vector")

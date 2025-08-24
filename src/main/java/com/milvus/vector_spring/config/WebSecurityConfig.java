@@ -1,10 +1,8 @@
 package com.milvus.vector_spring.config;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.milvus.vector_spring.config.jwt.JwtTokenProvider;
 import com.milvus.vector_spring.config.jwt.TokenAuthenticationFilter;
 import com.milvus.vector_spring.user.UserDetailServiceImpl;
-import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -16,10 +14,6 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
-import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
-
-import java.util.HashMap;
-import java.util.Map;
 
 @RequiredArgsConstructor
 @Configuration
@@ -44,30 +38,13 @@ public class WebSecurityConfig {
 
         http
             .authorizeHttpRequests(auth -> auth
-                    .requestMatchers("/static/**", "/auth/check", "/auth/login", "/user/sign-up", "/openchat", "/chat/test").permitAll()
+                    .requestMatchers("/static/**", "/auth/check", "/auth/login", "/user/sign-up").permitAll()
                     .anyRequest().authenticated()
             )
             .addFilterBefore(
                     new TokenAuthenticationFilter(jwtTokenProvider, userDetailServiceImpl),
                     UsernamePasswordAuthenticationFilter.class
             );
-
-        http.exceptionHandling(exceptionHandling ->
-                exceptionHandling.defaultAuthenticationEntryPointFor(
-                        (request, response, authException) -> {
-                            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-                            response.setContentType("application/json;charset=UTF-8");
-
-                            Map<String, String> error = new HashMap<>();
-                            error.put("code", "401");
-                            error.put("message", "Please provide a valid token.");
-
-                            ObjectMapper objectMapper = new ObjectMapper();
-                            response.getWriter().write(objectMapper.writeValueAsString(error));
-                        },
-                        new AntPathRequestMatcher("/**")
-                )
-        );
 
         return http.build();
     }

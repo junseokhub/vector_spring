@@ -1,10 +1,9 @@
 package com.milvus.vector_spring.chat.dto;
 
 import com.milvus.vector_spring.content.Content;
+import com.milvus.vector_spring.content.dto.ContentDto;
 import io.milvus.v2.service.vector.response.SearchResp;
-import lombok.Builder;
 import lombok.Getter;
-import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -12,47 +11,67 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 @Getter
-@Builder
-@Document(collection = "chat_response")
 public class ChatResponseDto {
-    private String sessionId;
-    private String projectKey;
-    private String input;
-    private String output;
-    private String vectorOutput;
-    private Content content;
-    private LocalDateTime inputDateTime;
-    private LocalDateTime outputDateTime;
-    private List<VectorSearchRankDto> rank;
 
-    public static ChatResponseDto chatResponseDto(
+    private final String sessionId;
+    private final String projectKey;
+    private final String input;
+    private final String output;
+    private final String vectorOutput;
+    private final LocalDateTime inputDateTime;
+    private final LocalDateTime outputDateTime;
+    private final List<VectorSearchRankDto> rank;
+    private final ContentDto content;
+
+    public ChatResponseDto(String sessionId, String projectKey, String input, String output,
+                           String vectorOutput, ContentDto content,
+                           LocalDateTime inputDateTime, LocalDateTime outputDateTime,
+                           List<VectorSearchRankDto> rank) {
+        this.sessionId = sessionId;
+        this.projectKey = projectKey;
+        this.input = input;
+        this.output = output;
+        this.vectorOutput = vectorOutput;
+        this.content = content;
+        this.inputDateTime = inputDateTime;
+        this.outputDateTime = outputDateTime;
+        this.rank = rank;
+    }
+
+    public static ChatResponseDto from(
             String projectKey, String sessionId,
             String input, String output,
             LocalDateTime inputDateTime, LocalDateTime outputDateTime,
             SearchResp search, Content content) {
+
         List<VectorSearchRankDto> rankList = search.getSearchResults().stream()
                 .flatMap(List::stream)
                 .map(result -> {
                     Map<String, Object> entity = result.getEntity();
-                    return VectorSearchRankDto.builder()
-                            .answer((String) entity.get("answer"))
-                            .title((String) entity.get("title"))
-                            .score(result.getScore())
-                            .id((Long) result.getId())
-                            .build();
+                    return new VectorSearchRankDto(
+                            (String) entity.get("answer"),
+                            (String) entity.get("title"),
+                            result.getScore(),
+                            (Long) result.getId()
+                    );
                 })
                 .collect(Collectors.toList());
-        String firstAnswer = rankList.isEmpty() ? "" : rankList.get(0).getAnswer();
-        return ChatResponseDto.builder()
-                .sessionId(sessionId)
-                .projectKey(projectKey)
-                .input(input)
-                .vectorOutput(firstAnswer)
-                .output(output)
-                .inputDateTime(inputDateTime)
-                .outputDateTime(outputDateTime)
-                .rank(rankList)
-                .content(content)
-                .build();
+
+        String firstAnswer = rankList.stream()
+                .findFirst()
+                .map(VectorSearchRankDto::getAnswer)
+                .orElse("");
+
+        return new ChatResponseDto(
+                sessionId,
+                projectKey,
+                input,
+                output,
+                firstAnswer,
+                content == null ? null : new ContentDto(content),
+                inputDateTime,
+                outputDateTime,
+                rankList
+        );
     }
 }

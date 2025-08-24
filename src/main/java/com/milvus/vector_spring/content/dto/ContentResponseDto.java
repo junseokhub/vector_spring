@@ -1,39 +1,25 @@
 package com.milvus.vector_spring.content.dto;
 
 import com.milvus.vector_spring.content.Content;
-import lombok.Builder;
 import lombok.Getter;
 
 import java.time.LocalDateTime;
 
 @Getter
 public class ContentResponseDto {
-    private final Long id;
-    private final String key;
-    private final String title;
-    private final String answer;
-    private final Long projectId;
-    private final Long createdUserId;
-    private final Long updatedUserId;
-    private final LocalDateTime createdAt;
-    private final LocalDateTime updatedAt;
+    private Long id;
+    private String key;
+    private String title;
+    private String answer;
+    private Long projectId;
+    private Long createdUserId;
+    private Long updatedUserId;
+    private LocalDateTime createdAt;
+    private LocalDateTime updatedAt;
 
-    public static ContentResponseDto contentResponseDto(Content content) {
-        return ContentResponseDto.builder()
-                .id(content.getId())
-                .key(content.getKey())
-                .title(content.getTitle())
-                .answer(content.getAnswer())
-                .projectId(content.getProject().getId())
-                .createdUserId(content.getCreatedBy().getId())
-                .updatedUserId(content.getUpdatedBy().getId())
-                .createdAt(content.getCreatedAt())
-                .updatedAt(content.getUpdatedAt())
-                .build();
-    }
-
-    @Builder
-    public ContentResponseDto(Long id, String key, String title, String answer, Long projectId, Long createdUserId, Long updatedUserId, LocalDateTime createdAt, LocalDateTime updatedAt) {
+    public ContentResponseDto(Long id, String key, String title, String answer, Long projectId,
+                              Long createdUserId, Long updatedUserId,
+                              LocalDateTime createdAt, LocalDateTime updatedAt) {
         this.id = id;
         this.key = key;
         this.title = title;
@@ -43,5 +29,19 @@ public class ContentResponseDto {
         this.updatedUserId = updatedUserId;
         this.createdAt = createdAt;
         this.updatedAt = updatedAt;
+    }
+
+    public static ContentResponseDto from(Content content) {
+        return new ContentResponseDto(
+                content.getId(),
+                content.getKey(),
+                content.getTitle(),
+                content.getAnswer(),
+                content.getProject().getId(),
+                content.getCreatedBy().getId(),
+                content.getUpdatedBy().getId(),
+                content.getCreatedAt(),
+                content.getUpdatedAt()
+        );
     }
 }

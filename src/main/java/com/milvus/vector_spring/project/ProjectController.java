@@ -35,10 +35,9 @@ public class ProjectController {
         return ProjectResponseDto.projectResponseDto(project);
     }
 
-    @GetMapping("/contents")
-    public ProjectContentsResponseDto findOneProjectWithContents(@RequestParam String key) {
-        Project project = projectService.findOneProjectWithContents(key);
-        return ProjectContentsResponseDto.projectContentsResponseDto(project);
+    @GetMapping("/contents/{key}")
+    public ProjectContentsResponseDto findOneProjectWithContents(@PathVariable String key) {
+        return projectService.findOneProjectWithContents(key);
     }
 
     @PostMapping("/create")
@@ -47,8 +46,8 @@ public class ProjectController {
         return ResponseEntity.ok(ProjectResponseDto.projectResponseDto(project));
     }
 
-    @PostMapping("/update")
-    public ResponseEntity<ProjectResponseDto> updateProject(@RequestParam("key") String key, @Validated @RequestBody ProjectUpdateRequestDto projectUpdateRequestDto) {
+    @PostMapping("/update/{key}")
+    public ResponseEntity<ProjectResponseDto> updateProject(@PathVariable String key, @Validated @RequestBody ProjectUpdateRequestDto projectUpdateRequestDto) {
         Project project = projectService.updateProject(key, projectUpdateRequestDto);
         return ResponseEntity.ok(ProjectResponseDto.projectResponseDto(project));
     }

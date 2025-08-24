@@ -29,17 +29,13 @@ class UserServiceTest {
     @Autowired
     private PasswordEncoder passwordEncoder;
 
-    private UserSignUpRequestDto createUserDto(String email, String username) {
-        return UserSignUpRequestDto.builder()
-                .email(email)
-                .username(username)
-                .password("Password1!")
-                .build();
+    private UserSignUpRequestDto createUserDto(String email, String username, String password ) {
+        return new UserSignUpRequestDto(email, username, password);
     }
 
     @Test
     void find_all_user_success() {
-        userService.signUpUser(createUserDto("user1@example.com", "user1"));
+        userService.signUpUser(createUserDto("user1@example.com", "user1", "Password1!"));
 
         List<User> users = userService.findAllUser();
 
@@ -49,7 +45,7 @@ class UserServiceTest {
 
     @Test
     void find_user_by_id_success() {
-        User user = userService.signUpUser(createUserDto("user2@example.com", "user2"));
+        User user = userService.signUpUser(createUserDto("user2@example.com", "user2", "Password1!"));
 
         User found = userService.findOneUser(user.getId());
 
@@ -67,7 +63,7 @@ class UserServiceTest {
 
     @Test
     void find_user_by_email_success() {
-        userService.signUpUser(createUserDto("email3@example.com", "user3"));
+        userService.signUpUser(createUserDto("email3@example.com", "user3", "Password1!"));
 
         User found = userService.findOneUserByEmail("email3@example.com");
 
@@ -85,7 +81,7 @@ class UserServiceTest {
 
     @Test
     void find_user_with_projects() {
-        User user = userService.signUpUser(createUserDto("proj@example.com", "withproject"));
+        User user = userService.signUpUser(createUserDto("proj@example.com", "withproject", "Password1!"));
 
         UserProjectsResponseDto projectDto = userService.findOneUserWithProjects(user.getId());
 
@@ -95,7 +91,7 @@ class UserServiceTest {
 
     @Test
     void sign_up_success() {
-        UserSignUpRequestDto dto = createUserDto("new@example.com", "username");
+        UserSignUpRequestDto dto = createUserDto("new@example.com", "username", "Password1!");
 
         User savedUser = userService.signUpUser(dto);
 
@@ -107,10 +103,10 @@ class UserServiceTest {
 
     @Test
     void sign_up_duplicate_email_fail() {
-        userService.signUpUser(createUserDto("duplicate@example.com", "dup"));
+        userService.signUpUser(createUserDto("duplicate@example.com", "dup", "Password1!"));
 
         CustomException exception = assertThrows(CustomException.class, () -> {
-            userService.signUpUser(createUserDto("duplicate@example.com", "dup"));
+            userService.signUpUser(createUserDto("duplicate@example.com", "dup", "Password1!"));
         });
 
         assertThat(exception.getBaseCode()).isEqualTo(DUPLICATE_USER_EMAIL);
@@ -118,7 +114,7 @@ class UserServiceTest {
 
     @Test
     void update_user_success_same_email() {
-        User user = userService.signUpUser(createUserDto("user@example.com", "before"));
+        User user = userService.signUpUser(createUserDto("user@example.com", "before", "Password1!"));
 
         UserUpdateRequestDto updateDto = UserUpdateRequestDto.builder()
                 .email("user@example.com")
@@ -145,8 +141,8 @@ class UserServiceTest {
 
     @Test
     void update_user_fail_duplicate_email() {
-        User user1 = userService.signUpUser(createUserDto("existing@example.com", "user1"));
-        userService.signUpUser(createUserDto("new@example.com", "user2"));
+        User user1 = userService.signUpUser(createUserDto("existing@example.com", "user1", "Password1!"));
+        userService.signUpUser(createUserDto("new@example.com", "user2", "Password1!"));
 
         UserUpdateRequestDto updateDto = UserUpdateRequestDto.builder()
                 .email("new@example.com")

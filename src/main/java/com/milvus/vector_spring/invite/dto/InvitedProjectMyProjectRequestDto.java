@@ -1,10 +1,8 @@
 package com.milvus.vector_spring.invite.dto;
 
-import lombok.Builder;
-import lombok.Data;
+import lombok.Getter;
 
-@Data
-@Builder
+@Getter
 public class InvitedProjectMyProjectRequestDto {
     private Long userId;
 }

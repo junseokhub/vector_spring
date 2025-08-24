@@ -1,13 +1,11 @@
 package com.milvus.vector_spring.user.dto;
 
 import com.milvus.vector_spring.user.User;
-import lombok.Builder;
 import lombok.Getter;
 
 import java.time.LocalDateTime;
 
 @Getter
-@Builder
 public class UserResponseDto {
 
     private final Long id;
@@ -18,15 +16,26 @@ public class UserResponseDto {
     private final LocalDateTime createdAt;
     private final LocalDateTime updatedAt;
 
-    public static UserResponseDto userResponseDto(User user) {
-        return UserResponseDto.builder()
-                .id(user.getId())
-                .email(user.getEmail())
-                .username(user.getUsername())
-                .role(user.getRole())
-                .loginAt(user.getLoginAt())
-                .createdAt(user.getCreatedAt())
-                .updatedAt(user.getUpdatedAt())
-                .build();
+    public UserResponseDto(Long id, String email, String username, String role,
+                           LocalDateTime loginAt, LocalDateTime createdAt, LocalDateTime updatedAt) {
+        this.id = id;
+        this.email = email;
+        this.username = username;
+        this.role = role;
+        this.loginAt = loginAt;
+        this.createdAt = createdAt;
+        this.updatedAt = updatedAt;
+    }
+
+    public static UserResponseDto from(User user) {
+        return new UserResponseDto(
+                user.getId(),
+                user.getEmail(),
+                user.getUsername(),
+                user.getRole(),
+                user.getLoginAt(),
+                user.getCreatedAt(),
+                user.getUpdatedAt()
+        );
     }
 }

@@ -7,8 +7,6 @@ import jakarta.persistence.*;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import org.springframework.data.annotation.CreatedBy;
-import org.springframework.data.annotation.LastModifiedBy;
 
 import java.time.LocalDateTime;
 
@@ -31,16 +29,16 @@ public class Content extends BaseEntity {
     @Column(name = "answer", nullable = false)
     private String answer;
 
-    @ManyToOne()
-    @JoinColumn(name = "project_id", nullable = false)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "project_id")
     private Project project;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "created_user_id", nullable = false)
     private User createdBy;
 
-    @ManyToOne
-    @JoinColumn(name = "updated_user_id", nullable = true)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "updated_user_id")
     private User updatedBy;
 
     @Builder

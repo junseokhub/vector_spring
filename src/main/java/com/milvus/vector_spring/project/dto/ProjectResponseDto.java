@@ -1,13 +1,11 @@
 package com.milvus.vector_spring.project.dto;
 
 import com.milvus.vector_spring.project.Project;
-import lombok.Builder;
 import lombok.Getter;
 
 import java.time.LocalDateTime;
 
 @Getter
-@Builder
 public class ProjectResponseDto {
 
     private final Long id;
@@ -22,19 +20,45 @@ public class ProjectResponseDto {
     private final LocalDateTime createdAt;
     private final LocalDateTime updatedAt;
 
+    public ProjectResponseDto(
+            Long id,
+            String name,
+            String key,
+            String prompt,
+            String embedModel,
+            String chatModel,
+            long dimensions,
+            Long createdUserId,
+            Long updatedUserId,
+            LocalDateTime createdAt,
+            LocalDateTime updatedAt
+    ) {
+        this.id = id;
+        this.name = name;
+        this.key = key;
+        this.prompt = prompt;
+        this.embedModel = embedModel;
+        this.chatModel = chatModel;
+        this.dimensions = dimensions;
+        this.createdUserId = createdUserId;
+        this.updatedUserId = updatedUserId;
+        this.createdAt = createdAt;
+        this.updatedAt = updatedAt;
+    }
+
     public static ProjectResponseDto projectResponseDto(Project project) {
-        return ProjectResponseDto.builder()
-                .id(project.getId())
-                .name(project.getName())
-                .key(project.getKey())
-                .prompt(project.getPrompt())
-                .embedModel(project.getEmbedModel())
-                .chatModel(project.getChatModel())
-                .dimensions(project.getDimensions())
-                .createdUserId(project.getCreatedBy().getId())
-                .updatedUserId(project.getUpdatedBy().getId())
-                .createdAt(project.getCreatedAt())
-                .updatedAt(project.getUpdatedAt())
-                .build();
+        return new ProjectResponseDto(
+                project.getId(),
+                project.getName(),
+                project.getKey(),
+                project.getPrompt(),
+                project.getEmbedModel(),
+                project.getChatModel(),
+                project.getDimensions(),
+                project.getCreatedBy().getId(),
+                project.getUpdatedBy().getId(),
+                project.getCreatedAt(),
+                project.getUpdatedAt()
+        );
     }
 }

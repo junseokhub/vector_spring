@@ -41,6 +41,10 @@ public class ContentService {
                 .orElseThrow(() -> new CustomException(ErrorStatus.NOT_FOUND_CONTENT));
     }
 
+    public Optional<Content> findOneContentByContnetKey(String contentKey) {
+        return contentRepository.findOneContentByKey(contentKey);
+    }
+
     public Optional<Content> findOneContentByContentId(Long id) {
         return contentRepository.findById(id);
     }

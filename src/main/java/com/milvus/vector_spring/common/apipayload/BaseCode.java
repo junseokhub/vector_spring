@@ -1,7 +1,7 @@
 package com.milvus.vector_spring.common.apipayload;
 
-import com.milvus.vector_spring.common.apipayload.dto.ResponseDto;
+import com.milvus.vector_spring.common.apipayload.dto.ErrorResponseDto;
 
 public interface BaseCode {
-    public ResponseDto getReasonHttpStatus();
+    public ErrorResponseDto getReasonHttpStatus();
 }

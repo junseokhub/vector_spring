@@ -6,7 +6,6 @@ import com.milvus.vector_spring.common.annotation.NoAuthRequired;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 @RequestMapping("/auth")
@@ -17,7 +16,7 @@ public class AuthController {
 
     @PostMapping("/login")
     @NoAuthRequired()
-    public ResponseEntity<UserLoginResponseDto> login(@Validated @RequestBody UserLoginRequestDto userLoginRequestDto) {
+    public ResponseEntity<UserLoginResponseDto> login(@RequestBody UserLoginRequestDto userLoginRequestDto) {
         UserLoginResponseDto userLoginResponseDto = authService.login(userLoginRequestDto);
         return ResponseEntity.ok(userLoginResponseDto);
     }
