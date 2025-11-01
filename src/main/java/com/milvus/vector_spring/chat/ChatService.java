@@ -10,8 +10,6 @@ import com.milvus.vector_spring.content.ContentService;
 import com.milvus.vector_spring.milvus.VectorSearchService;
 import com.milvus.vector_spring.project.Project;
 import com.milvus.vector_spring.project.ProjectService;
-import com.openai.models.chat.completions.ChatCompletion;
-import com.openai.models.completions.CompletionUsage;
 import com.openai.models.embeddings.CreateEmbeddingResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -31,7 +29,6 @@ public class ChatService {
     @Value("${open.ai.key}")
     private String openAiKey;
 
-    private final ChatOptionService chatOptionService;
     private final ProjectService projectService;
     private final ContentService contentService;
     private final VectorSearchService vectorSearchService;
@@ -52,39 +49,26 @@ public class ChatService {
             VectorSearchResponseDto searchResponse = vectorSearchService.searchVector(embeddingResponse, project.getId());
             List<VectorSearchRankDto> rankList = vectorSearchService.convertToRankList(searchResponse);
 
-            String finalAnswer;
-            long totalToken;
-
-            if (rankList.isEmpty() || rankList.get(0).getScore() < 0.5) {
-                ChatCompletion answer = chatCompletionService.generateAnswer(
-                        project.getChatModel(),
-                        chatRequestDto.getText(),
-                        secretKey,
-                        rankList,
-                        searchResponse,
-                        project.getPrompt()
-                );
-
-                finalAnswer = answer.choices().get(0).message().content().orElse("");
-                totalToken = embeddingResponse.usage().totalTokens() +
-                        answer.usage().stream()
-                                .mapToLong(CompletionUsage::totalTokens)
-                                .sum();
-            } else {
-                totalToken = embeddingResponse.usage().totalTokens();
-                finalAnswer = rankList.get(0).getAnswer();
-            }
+            AnswerGenerationResultDto answerResult = chatCompletionService.generateAnswerWithDecision(
+                    project.getChatModel(),
+                    chatRequestDto.getText(),
+                    secretKey,
+                    rankList,
+                    searchResponse,
+                    project.getPrompt(),
+                    embeddingResponse
+            );
 
             Content content = Optional.ofNullable(searchResponse.getFirstSearchId())
                     .flatMap(contentService::findOneContentByContentId)
                     .orElse(null);
 
             LocalDateTime outputDateTime = LocalDateTime.now();
-            projectService.plusTotalToken(project.getKey(), totalToken);
+            projectService.plusTotalToken(project.getKey(), answerResult.getTotalToken());
 
             ChatProcessResultDto resultDto = new ChatProcessResultDto(
                     sessionId,
-                    finalAnswer,
+                    answerResult.getFinalAnswer(),
                     inputDateTime,
                     outputDateTime,
                     content,
