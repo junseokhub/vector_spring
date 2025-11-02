@@ -13,6 +13,7 @@ import com.openai.models.embeddings.CreateEmbeddingResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Service
@@ -63,7 +64,7 @@ public class ChatCompletionServiceImpl implements ChatCompletionService {
             finalAnswer = rankList.get(0).getAnswer();
         }
 
-        return new AnswerGenerationResultDto(finalAnswer, totalToken);
+        return new AnswerGenerationResultDto(finalAnswer, totalToken, LocalDateTime.now());
     }
 
 //    @Override

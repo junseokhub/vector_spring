@@ -58,19 +58,17 @@ public class ChatService {
                     project.getPrompt(),
                     embeddingResponse
             );
-
             Content content = Optional.ofNullable(searchResponse.getFirstSearchId())
                     .flatMap(contentService::findOneContentByContentId)
                     .orElse(null);
 
-            LocalDateTime outputDateTime = LocalDateTime.now();
             projectService.plusTotalToken(project.getKey(), answerResult.getTotalToken());
 
             ChatProcessResultDto resultDto = new ChatProcessResultDto(
                     sessionId,
                     answerResult.getFinalAnswer(),
                     inputDateTime,
-                    outputDateTime,
+                    answerResult.getOutputDateTime(),
                     content,
                     rankList,
                     searchResponse.getSearch()
