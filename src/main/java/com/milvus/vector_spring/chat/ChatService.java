@@ -1,7 +1,6 @@
 package com.milvus.vector_spring.chat;
 
 import com.milvus.vector_spring.chat.dto.*;
-import com.milvus.vector_spring.common.apipayload.BaseCode;
 import com.milvus.vector_spring.common.apipayload.status.ErrorStatus;
 import com.milvus.vector_spring.common.exception.CustomException;
 import com.milvus.vector_spring.config.mongo.document.ChatResponseDocument;
@@ -78,8 +77,11 @@ public class ChatService {
             saveResponse(chatRequestDto, resultDto);
 
             return chatResponseDto;
+        } catch (CustomException e) {
+            throw e;
         } catch (Exception e) {
-            throw new CustomException((BaseCode) e);
+            log.error("[chat] Unexpected server error", e);
+            throw new CustomException(ErrorStatus.INTERNAL_SERVER_ERROR, e);
         }
     }
 
