@@ -53,4 +53,15 @@ public class Content extends BaseEntity {
         this.createdAt = createdAt;
         this.updatedAt = updatedAt;
     }
+
+    public void update(String title, String answer, User updatedBy) {
+        if (title != null && !title.isEmpty()) {
+            this.title = title;
+        }
+        if (answer != null) {
+            this.answer = answer;
+        }
+        this.updatedBy = updatedBy;
+        this.updatedAt = LocalDateTime.now();
+    }
 }

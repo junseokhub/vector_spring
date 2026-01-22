@@ -19,7 +19,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.UUID;
 
 @Service
@@ -92,20 +91,8 @@ public class ProjectService  {
         Project project = projectRepository.findProjectByKey(key)
                 .orElseThrow(() -> new CustomException(ErrorStatus.NOT_FOUND_PROJECT));
         String secretKey = resolveOpenAiKey(project, dto);
-        Project updateProject = Project.builder()
-                .id(project.getId())
-                .key(project.getKey())
-                .name(dto.getName() != null && !dto.getName().isEmpty() ? dto.getName() : project.getName())
-                .openAiKey(secretKey)
-                .chatModel(dto.getChatModel() != null && !dto.getChatModel().isEmpty() ? dto.getChatModel() : project.getChatModel())
-                .embedModel(dto.getEmbedModel() != null ? dto.getEmbedModel() : project.getEmbedModel())
-                .dimensions(3072)
-                .prompt(dto.getPrompt() != null ? dto.getPrompt() : project.getPrompt())
-                .createdBy(project.getCreatedBy())
-                .createdAt(project.getCreatedAt())
-                .updatedBy(user)
-                .build();
-        return projectRepository.save(updateProject);
+        project.update(dto, secretKey, user);
+        return project;
     }
 
     @Transactional
@@ -122,14 +109,10 @@ public class ProjectService  {
 
     @Transactional
     public void plusTotalToken(String key, long totalToken) {
-        Optional<Project> project = projectRepository.findProjectByKey(key);
-        if (project.isPresent()) {
-            Project p = project.get();
-            long currentTotal = p.getTotalToken();
-            p.updateTotalToken(currentTotal + totalToken);
-            projectRepository.save(p);
-        }
+        Project project = projectRepository.findProjectByKeyForUpdate(key);
+        project.updateTotalToken(project.getTotalToken() + totalToken);
     }
+
     public void updateProjectMaster(Project project, User user) {
         project.updateByUser(user, user);
         projectRepository.save(project);

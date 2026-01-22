@@ -88,24 +88,15 @@ public class ContentService {
                 .orElseThrow(() -> new CustomException(ErrorStatus.NOT_FOUND_CONTENT));
         Project project = projectService.findOneProject(content.getProject().getId());
 
-        Content updateContent = Content.builder()
-                .id(content.getId())
-                .key(content.getKey())
-                .title(dto.getTitle())
-                .answer(dto.getAnswer())
-                .project(project)
-                .createdBy(content.getCreatedBy())
-                .createdAt(content.getCreatedAt())
-                .updatedBy(user)
-                .build();
-
-        String key = encryptionService.decryptData(project.getOpenAiKey());
+        content.update(dto.getTitle(), dto.getAnswer(), user);
 
         if (!content.getAnswer().equals(dto.getAnswer())) {
-            CreateEmbeddingResponse embedResponseDto = openAiLibraryService.embedding(key, updateContent.getAnswer(), project.getDimensions());
-            insertIntoMilvus(updateContent, embedResponseDto, project.getId());
+            String key = encryptionService.decryptData(project.getOpenAiKey());
+            CreateEmbeddingResponse embedResponseDto = openAiLibraryService.embedding(key, content.getAnswer(), project.getDimensions());
+            insertIntoMilvus(content, embedResponseDto, project.getId());
         }
-        return contentRepository.save(updateContent);
+
+        return content;
     }
 
     private void insertIntoMilvus(Content content, CreateEmbeddingResponse embedResponseDto, Long dbKey) {

@@ -1,6 +1,7 @@
 package com.milvus.vector_spring.project;
 
 import com.milvus.vector_spring.common.BaseEntity;
+import com.milvus.vector_spring.project.dto.ProjectUpdateRequestDto;
 import com.milvus.vector_spring.user.User;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
@@ -79,5 +80,34 @@ public class Project extends BaseEntity {
 
     public void updateTotalToken(long totalToken) {
         this.totalToken = totalToken;
+    }
+
+    public void update(
+            ProjectUpdateRequestDto dto,
+            String resolvedOpenAiKey,
+            User updatedBy
+    ) {
+        if (dto.getName() != null && !dto.getName().isEmpty()) {
+            this.name = dto.getName();
+        }
+
+        if (resolvedOpenAiKey != null) {
+            this.openAiKey = resolvedOpenAiKey;
+        }
+
+        if (dto.getChatModel() != null && !dto.getChatModel().isEmpty()) {
+            this.chatModel = dto.getChatModel();
+        }
+
+        if (dto.getEmbedModel() != null) {
+            this.embedModel = dto.getEmbedModel();
+        }
+
+        if (dto.getPrompt() != null) {
+            this.prompt = dto.getPrompt();
+        }
+
+        this.updatedBy = updatedBy;
+        this.updatedAt = LocalDateTime.now();
     }
 }

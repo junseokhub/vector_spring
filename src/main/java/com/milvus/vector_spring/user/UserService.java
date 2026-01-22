@@ -69,18 +69,15 @@ public class UserService {
     public User updateUser(Long id, UserUpdateRequestDto userUpdateRequestDto) {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new CustomException(ErrorStatus.NOT_FOUND_USER));
-
         if (!user.getEmail().equals(userUpdateRequestDto.getEmail())) {
             duplicateEmailCheck(userUpdateRequestDto.getEmail());
         }
-
-        User updatedUser = User.builder()
-                .id(user.getId())
-                .email(userUpdateRequestDto.getEmail())
-                .username(userUpdateRequestDto.getUsername())
-                .password(user.getPassword())
-                .build();
-        return userRepository.save(updatedUser);
+        user.update(
+                userUpdateRequestDto.getEmail(),
+                userUpdateRequestDto.getUsername(),
+                userUpdateRequestDto.getPassword()
+        );
+        return user;
     }
 
     @Transactional

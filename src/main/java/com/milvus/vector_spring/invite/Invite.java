@@ -8,6 +8,8 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 
+import java.time.LocalDateTime;
+
 @Entity
 @Getter
 @RequiredArgsConstructor
@@ -39,5 +41,6 @@ public class Invite extends BaseEntity {
 
     public void updateCreatedBy(User newCreatedBy) {
         this.createdBy = newCreatedBy;
+        this.updatedAt = LocalDateTime.now();
     }
 }

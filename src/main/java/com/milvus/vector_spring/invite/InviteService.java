@@ -94,7 +94,9 @@ public class InviteService {
         return "Banish User!";
     }
 
+    @Transactional
     public void updateMasterUser(UpdateMasterUserRequestDto dto) {
+
         User beforeMaster = userService.findOneUser(dto.getCreatedUserId());
         User afterMaster = userService.findOneUserByEmail(dto.getChangeMasterUser());
 
@@ -102,6 +104,7 @@ public class InviteService {
         projectService.updateProjectMaster(project, afterMaster);
 
         List<Invite> invites = findByCreatedByAndProject(beforeMaster, project);
+
         Invite toDelete = invites.stream()
                 .filter(invite -> afterMaster.getEmail().equals(invite.getReceivedEmail()))
                 .findFirst()
@@ -113,6 +116,5 @@ public class InviteService {
         for (Invite invite : invites) {
             invite.updateCreatedBy(afterMaster);
         }
-        inviteRepository.saveAll(invites);
     }
 }
