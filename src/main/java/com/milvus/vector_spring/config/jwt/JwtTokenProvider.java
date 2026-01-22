@@ -4,7 +4,6 @@ import com.milvus.vector_spring.common.apipayload.status.ErrorStatus;
 import com.milvus.vector_spring.common.exception.CustomException;
 import com.milvus.vector_spring.common.service.RedisService;
 import com.milvus.vector_spring.user.User;
-import com.milvus.vector_spring.user.UserDetailServiceImpl;
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
@@ -12,7 +11,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 
 import javax.crypto.SecretKey;
@@ -34,7 +32,6 @@ public class JwtTokenProvider {
     private int refreshTokenExpiration;
 
     private final RedisService redisService;
-    private final UserDetailServiceImpl userDetailServiceImpl;
 
     private SecretKey getSigningKey() {
         byte[] keyBytes = Decoders.BASE64.decode(this.secretKey);
@@ -51,11 +48,9 @@ public class JwtTokenProvider {
                 .header().add(jwtHeader)
                 .and()
                 .subject(user.getEmail())
-                .subject(user.getId().toString())
-                .subject(user.getRole())
+                .claims(userToMap(user))
                 .issuedAt(java.sql.Timestamp.valueOf(now))
                 .expiration(java.sql.Timestamp.valueOf(expiryDate))
-                .claims(userToMap(user))
                 .signWith(this.getSigningKey())
                 .compact();
     }
@@ -69,15 +64,15 @@ public class JwtTokenProvider {
                 .expiration(java.sql.Timestamp.valueOf(expiryDate))
                 .signWith(this.getSigningKey())
                 .compact();
-try {
-    redisService.setRedis(
-            "refreshToken:" + user.getEmail(),
-            refreshToken,
-            refreshTokenExpiration / 1000
-    );
-} catch (Exception e) {
-    System.out.println(e.getMessage());
-}
+        try {
+            redisService.setRedis(
+                    "refreshToken:" + user.getEmail(),
+                    refreshToken,
+                    refreshTokenExpiration / 1000
+            );
+        } catch (Exception e) {
+            System.out.println(e.getMessage());
+        }
     }
 
     public boolean validateToken(String token) {
@@ -112,8 +107,19 @@ try {
     public Authentication getAuthentication(String token) {
         Claims claims = getClaims(token);
 
-        UserDetails userDetails = userDetailServiceImpl.loadUserByUsername(claims.get("email", String.class));
-        return new UsernamePasswordAuthenticationToken(userDetails, "", userDetails.getAuthorities());
+        String email = claims.get("email", String.class);
+        String userName = claims.get("userName", String.class);
+        String role = claims.get("role", String.class);
+        Long userId = claims.get("userId", Long.class);
+
+        User principal = User.builder()
+                .id(userId)
+                .username(userName)
+                .email(email)
+                .role(role)
+                .build();
+
+        return new UsernamePasswordAuthenticationToken(principal, "", principal.getAuthorities());
     }
 
     public Claims getClaims(String token) {

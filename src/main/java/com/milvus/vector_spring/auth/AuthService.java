@@ -10,7 +10,6 @@ import com.milvus.vector_spring.user.User;
 import com.milvus.vector_spring.user.UserDetailServiceImpl;
 import com.milvus.vector_spring.user.UserRepository;
 import com.milvus.vector_spring.user.UserService;
-import io.jsonwebtoken.Claims;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.Authentication;
@@ -63,31 +62,34 @@ public class AuthService {
     }
 
     public UserLoginResponseDto check() {
-        String token = getToken();
-        Claims claims = jwtTokenProvider.getClaims(token);
-        User user = userService.findOneUser(claims.get("userId", Long.class));
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+
+        if (authentication == null || !authentication.isAuthenticated()) {
+            throw new CustomException(ErrorStatus.INVALID_ACCESS_TOKEN);
+        }
+
+        User user = (User) authentication.getPrincipal();
+        String currentToken = getToken();
+
         return new UserLoginResponseDto(
                 user.getId(),
                 user.getEmail(),
                 user.getUsername(),
                 user.getRole(),
-                token,
+                currentToken,
                 user.getLoginAt()
         );
     }
 
     private String getToken() {
-        String token = request.getHeader("Authorization");
-        String newToken = (String) request.getAttribute("newAccessToken");
-
-        if (newToken != null && !newToken.equals(token)) {
+        String newToken = (String) request.getAttribute("New-Access-Token");
+        if (newToken != null) {
             return newToken;
         }
-
+        String token = request.getHeader("Authorization");
         if (token != null && token.startsWith("Bearer ")) {
-            return token.substring(7);
+            return token.substring(7).trim();
         }
-
         throw new CustomException(ErrorStatus.INVALID_ACCESS_TOKEN);
     }
 }

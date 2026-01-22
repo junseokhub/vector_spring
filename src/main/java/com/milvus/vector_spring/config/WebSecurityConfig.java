@@ -2,7 +2,6 @@ package com.milvus.vector_spring.config;
 
 import com.milvus.vector_spring.config.jwt.JwtTokenProvider;
 import com.milvus.vector_spring.config.jwt.TokenAuthenticationFilter;
-import com.milvus.vector_spring.user.UserDetailServiceImpl;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -22,36 +21,29 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 public class WebSecurityConfig {
 
     private final JwtTokenProvider jwtTokenProvider;
-    private final UserDetailServiceImpl userDetailServiceImpl;
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
-            .csrf(AbstractHttpConfigurer::disable)
-            .httpBasic(AbstractHttpConfigurer::disable)
-            .formLogin(AbstractHttpConfigurer::disable)
-            .logout(AbstractHttpConfigurer::disable);
+                .csrf(AbstractHttpConfigurer::disable)
+                .httpBasic(AbstractHttpConfigurer::disable)
+                .formLogin(AbstractHttpConfigurer::disable)
+                .logout(AbstractHttpConfigurer::disable);
 
         http.sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS));
-
-        http.addFilterBefore(tokenAuthenticationFilter(), UsernamePasswordAuthenticationFilter.class);
-
         http
-            .authorizeHttpRequests(auth -> auth
-                    .requestMatchers("/static/**", "/auth/check", "/auth/login", "/user/sign-up").permitAll()
-                    .anyRequest().authenticated()
-            )
-            .addFilterBefore(
-                    new TokenAuthenticationFilter(jwtTokenProvider, userDetailServiceImpl),
-                    UsernamePasswordAuthenticationFilter.class
-            );
+                .authorizeHttpRequests(auth -> auth
+                        .requestMatchers("/static/**", "/auth/check", "/auth/login", "/user/sign-up").permitAll()
+                        .anyRequest().authenticated()
+                );
+        http.addFilterBefore(tokenAuthenticationFilter(), UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }
 
     @Bean
     public TokenAuthenticationFilter tokenAuthenticationFilter() {
-        return new TokenAuthenticationFilter(jwtTokenProvider, userDetailServiceImpl);
+        return new TokenAuthenticationFilter(jwtTokenProvider);
     }
 
     @Bean
