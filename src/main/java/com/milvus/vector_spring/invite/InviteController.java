@@ -1,6 +1,5 @@
 package com.milvus.vector_spring.invite;
 
-import com.milvus.vector_spring.common.annotation.NoAuthRequired;
 import com.milvus.vector_spring.invite.dto.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;

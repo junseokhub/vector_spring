@@ -2,6 +2,7 @@ package com.milvus.vector_spring.openai.dto;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.Getter;
@@ -39,7 +40,10 @@ public class OpenAiZodResponseDto {
         if (contentNode.isTextual()) {
             try {
                 JsonNode contentJson = objectMapper.readTree(contentNode.asText());
-                List<ZodResponse> res = objectMapper.convertValue(contentJson.get("res"), List.class);
+                List<ZodResponse> res = objectMapper.convertValue(
+                        contentJson.get("res"),
+                        new TypeReference<List<ZodResponse>>() {}
+                );
                 OpenAiUsageResponseDto usage = objectMapper.convertValue(jsonNode.get("usage"), OpenAiUsageResponseDto.class);
                 return new OpenAiZodResponseDto(res, usage);
             } catch (Exception e) {

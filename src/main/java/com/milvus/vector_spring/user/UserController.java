@@ -1,6 +1,5 @@
 package com.milvus.vector_spring.user;
 
-import com.milvus.vector_spring.common.annotation.NoAuthRequired;
 import com.milvus.vector_spring.common.exception.CustomException;
 import com.milvus.vector_spring.user.dto.UserProjectsResponseDto;
 import com.milvus.vector_spring.user.dto.UserResponseDto;
@@ -30,7 +29,6 @@ public class UserController {
     }
 
     @PostMapping("/sign-up")
-    @NoAuthRequired
     public ResponseEntity<UserResponseDto> signUpUser(@Validated @RequestBody UserSignUpRequestDto userSignUpRequestDto) throws CustomException {
         User user = userService.signUpUser(userSignUpRequestDto);
         return ResponseEntity.ok(UserResponseDto.from(user));

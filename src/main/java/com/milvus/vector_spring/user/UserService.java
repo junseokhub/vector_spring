@@ -4,6 +4,7 @@ import com.milvus.vector_spring.common.apipayload.status.ErrorStatus;
 import com.milvus.vector_spring.common.exception.CustomException;
 import com.milvus.vector_spring.content.ContentRepository;
 import com.milvus.vector_spring.invite.InviteRepository;
+import com.milvus.vector_spring.libraryopenai.dto.Role;
 import com.milvus.vector_spring.project.Project;
 import com.milvus.vector_spring.project.ProjectRepository;
 import com.milvus.vector_spring.user.dto.UserProjectsResponseDto;
@@ -60,7 +61,7 @@ public class UserService {
                 .email(userSignUpRequestDto.getEmail())
                 .username(userSignUpRequestDto.getUsername())
                 .password(passwordEncoder.encode(userSignUpRequestDto.getPassword()))
-                .role("ROLE_USER")
+                .role(Role.USER.getValue())
                 .build();
         return userRepository.save(user);
     }

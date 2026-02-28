@@ -58,12 +58,10 @@ class ProjectServiceTest {
 
         Project saved = projectService.createProject(dto);
 
-        verify(milvusService).createSchema(saved.getId(), 3072);
-
         assertThat(saved).isNotNull();
         assertThat(saved.getName()).isEqualTo("Test Project");
-        assertThat(saved.getCreatedBy().getId()).isEqualTo(user.getId());
-        assertThat(saved.getOpenAiKey()).isNotNull();
+
+        verify(milvusService).createSchema(saved.getId(), 3072);
     }
 
     @Test

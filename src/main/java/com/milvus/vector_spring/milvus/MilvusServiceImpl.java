@@ -76,7 +76,7 @@ public class MilvusServiceImpl implements MilvusService {
                 client.createUser(createUserReq);
             }
 
-            CreateCollectionReq.CollectionSchema schema = client.createSchema();
+            CreateCollectionReq.CollectionSchema schema = CreateCollectionReq.CollectionSchema.builder().build();
             schema.addField(AddFieldReq.builder()
                     .fieldName("id")
                     .dataType(DataType.Int64)
@@ -209,7 +209,7 @@ public class MilvusServiceImpl implements MilvusService {
             SearchReq searchReq = SearchReq.builder()
                     .collectionName(collectionName + dbKey)
                     .data(baseVectors)
-                    .topK(5)
+                    .limit(5)
                     .searchParams(Map.of("metric_type", "COSINE", "efConstruction", 100, "M", 16))
                     .outputFields(fields)
                     .build();

@@ -5,6 +5,7 @@ import com.milvus.vector_spring.auth.dto.UserLoginResponseDto;
 import com.milvus.vector_spring.common.apipayload.status.ErrorStatus;
 import com.milvus.vector_spring.common.exception.CustomException;
 import com.milvus.vector_spring.config.jwt.JwtTokenProvider;
+import com.milvus.vector_spring.libraryopenai.dto.Role;
 import com.milvus.vector_spring.user.User;
 import com.milvus.vector_spring.user.UserRepository;
 import jakarta.servlet.http.HttpServletRequest;
@@ -15,8 +16,14 @@ import org.junit.jupiter.api.TestInstance;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.test.context.ActiveProfiles;
+
+import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -58,6 +65,7 @@ class AuthServiceTest {
                             .email(TEST_EMAIL)
                             .username(TEST_USERNAME)
                             .password(passwordEncoder.encode(TEST_PASSWORD))
+                            .role(Role.USER.getValue())
                             .build();
                     return userRepository.save(newUser);
                 });
@@ -93,8 +101,14 @@ class AuthServiceTest {
         String accessToken = jwtTokenProvider.generateAccessToken(user);
 
         Mockito.when(request.getHeader("Authorization")).thenReturn("Bearer " + accessToken);
-
         injectRequest(authService, request);
+
+        Authentication authentication = new UsernamePasswordAuthenticationToken(
+                user,
+                null,
+                List.of(new SimpleGrantedAuthority(user.getRole()))
+        );
+        SecurityContextHolder.getContext().setAuthentication(authentication);
 
         UserLoginResponseDto response = authService.check();
 
