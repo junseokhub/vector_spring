@@ -1,10 +1,10 @@
 package com.milvus.vector_spring.util;
 
+import com.milvus.vector_spring.util.properties.JwtProperties;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.util.SerializationUtils;
 
@@ -14,18 +14,17 @@ import java.util.Base64;
 @RequiredArgsConstructor
 public class CookieUtil {
 
-    @Value("${jwt.access.token.expiration}")
-    private static int accessTokenMaxAge;
+    private final JwtProperties jwtProperties;
 
-    public static void addCookie(HttpServletResponse response, String name, String value) {
+    public void addCookie(HttpServletResponse response, String name, String value) {
         Cookie cookie = new Cookie(name, value);
         cookie.setPath("/");
-        cookie.setMaxAge(accessTokenMaxAge);
+        cookie.setMaxAge(jwtProperties.token().accessExpiration());
 
         response.addCookie(cookie);
     }
 
-    public static void deleteCookie(HttpServletResponse response, String name) {
+    public void deleteCookie(HttpServletResponse response, String name) {
         Cookie cookie = new Cookie(name, null);
         cookie.setHttpOnly(true);
         cookie.setSecure(true);

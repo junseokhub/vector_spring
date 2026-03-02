@@ -4,6 +4,7 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.milvus.vector_spring.common.apipayload.status.ErrorStatus;
 import com.milvus.vector_spring.common.exception.CustomException;
+import com.milvus.vector_spring.util.properties.MilvusProperties;
 import com.milvus.vector_spring.milvus.dto.InsertRequestDto;
 import io.milvus.v2.client.ConnectConfig;
 import io.milvus.v2.client.MilvusClientV2;
@@ -20,7 +21,7 @@ import io.milvus.v2.service.vector.request.UpsertReq;
 import io.milvus.v2.service.vector.request.data.BaseVector;
 import io.milvus.v2.service.vector.request.data.FloatVec;
 import io.milvus.v2.service.vector.response.SearchResp;
-import org.springframework.beans.factory.annotation.Value;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -29,31 +30,19 @@ import java.util.List;
 import java.util.Map;
 
 @Service
+@RequiredArgsConstructor
 public class MilvusServiceImpl implements MilvusService {
 
-    @Value("${cluster.endpoint}")
-    private String clusterEndpoint;
-
-    @Value("${collection.name}")
-    private String collectionName;
-
-    @Value(("${milvus.token}"))
-    private String token;
-
-    @Value("${milvus.username}")
-    private String username;
-
-    @Value("${milvus.password}")
-    private String password;
+    private final MilvusProperties milvusProperties;
 
     @Override
     public MilvusClientV2 connect() throws CustomException {
         ConnectConfig connectConfig = ConnectConfig.builder()
-                .uri(clusterEndpoint)
-                .token(token)
+                .uri(milvusProperties.clusterEndpoint())
+                .token(milvusProperties.token())
                 .build();
         MilvusClientV2 client = new MilvusClientV2(connectConfig);
-        System.out.println("Connected to Milvus at: " + clusterEndpoint);
+        System.out.println("Connected to Milvus at: " + milvusProperties.clusterEndpoint());
         return client;
     }
 
@@ -62,17 +51,17 @@ public class MilvusServiceImpl implements MilvusService {
         MilvusClientV2 client = connect();
         try {
             List<String> existingCollections = client.listCollections().getCollectionNames();
-            if (existingCollections.contains(collectionName + dbKey)) {
+            if (existingCollections.contains(milvusProperties.collectionName() + dbKey)) {
                 throw new CustomException(ErrorStatus.MILVUS_COLLECTION_ALREADY_EXISTS);
             }
 
             CreateUserReq createUserReq = CreateUserReq.builder()
-                    .userName(username)
-                    .password(password)
+                    .userName(milvusProperties.username())
+                    .password(milvusProperties.password())
                     .build();
 
             List<String> users = client.listUsers();
-            if (!users.contains(username)) {
+            if (!users.contains(milvusProperties.username())) {
                 client.createUser(createUserReq);
             }
 
@@ -101,13 +90,13 @@ public class MilvusServiceImpl implements MilvusService {
 
             List<IndexParam> indexParamList = createIndex();
             CreateCollectionReq createCollectionReq = CreateCollectionReq.builder()
-                    .collectionName(collectionName + dbKey)
+                    .collectionName(milvusProperties.collectionName() + dbKey)
                     .collectionSchema(schema)
                     .indexParams(indexParamList)
                     .build();
             client.createCollection(createCollectionReq);
 
-            GetLoadStateReq getLoadStateReq = loadCollection(collectionName + dbKey);
+            GetLoadStateReq getLoadStateReq = loadCollection(milvusProperties.collectionName() + dbKey);
             client.getLoadState(getLoadStateReq);
 
         } catch (Exception e) {
@@ -140,7 +129,7 @@ public class MilvusServiceImpl implements MilvusService {
     public boolean checkCollectionLoadState(Long dbKey) {
         MilvusClientV2 client = connect();
         GetLoadStateReq loadStateReq = GetLoadStateReq.builder()
-                .collectionName(collectionName + dbKey)
+                .collectionName(milvusProperties.collectionName() + dbKey)
                 .build();
         Boolean res = client.getLoadState(loadStateReq);
         System.out.println("Collection load state: " + res);
@@ -165,7 +154,7 @@ public class MilvusServiceImpl implements MilvusService {
             List<JsonObject> data = List.of(dataObject);
 
             UpsertReq upsertReq = UpsertReq.builder()
-                    .collectionName(collectionName + dbKey)
+                    .collectionName(milvusProperties.collectionName() + dbKey)
                     .data(data)
                     .build();
             client.upsert(upsertReq);
@@ -179,7 +168,7 @@ public class MilvusServiceImpl implements MilvusService {
         try {
             MilvusClientV2 client = connect();
             DeleteReq deleteReq = DeleteReq.builder()
-                    .collectionName(collectionName + id)
+                    .collectionName(milvusProperties.collectionName() + id)
                     .filter("id in [" + id + "]")
                     .build();
             client.delete(deleteReq);
@@ -192,7 +181,7 @@ public class MilvusServiceImpl implements MilvusService {
     public boolean hasCollection() {
         MilvusClientV2 client = connect();
         HasCollectionReq hasCollectionReq = HasCollectionReq.builder()
-                .collectionName(collectionName)
+                .collectionName(milvusProperties.collectionName())
                 .build();
         return client.hasCollection(hasCollectionReq);
     }
@@ -207,7 +196,7 @@ public class MilvusServiceImpl implements MilvusService {
             }
             List<String> fields = Arrays.asList("title", "answer");
             SearchReq searchReq = SearchReq.builder()
-                    .collectionName(collectionName + dbKey)
+                    .collectionName(milvusProperties.collectionName() + dbKey)
                     .data(baseVectors)
                     .limit(5)
                     .searchParams(Map.of("metric_type", "COSINE", "efConstruction", 100, "M", 16))

@@ -1,8 +1,9 @@
 package com.milvus.vector_spring.config;
 
+import com.milvus.vector_spring.util.properties.CommonProperties;
 import com.milvus.vector_spring.user.User;
 import com.milvus.vector_spring.user.UserRepository;
-import org.springframework.beans.factory.annotation.Value;
+import lombok.RequiredArgsConstructor;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -11,24 +12,21 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import java.util.Optional;
 
 @Configuration
+@RequiredArgsConstructor
 public class DataInitializer {
 
-    @Value("${admin.email}")
-    private String adminEmail;
-
-    @Value("${admin.password}")
-    private String adminPassword;
+    private final CommonProperties commonProperties;
 
     @Bean
     public CommandLineRunner initAdmin(UserRepository userRepository, PasswordEncoder passwordEncoder) {
         return args -> {
-            Optional<User> existEmail = userRepository.findByEmail(adminEmail);
+            Optional<User> existEmail = userRepository.findByEmail(commonProperties.adminEmail());
             if (existEmail.isEmpty()) {
                 User admin = User.builder()
                         .id(1L)
-                        .email(adminEmail)
+                        .email(commonProperties.adminEmail())
                         .username("ADMIN")
-                        .password(passwordEncoder.encode(adminPassword))
+                        .password(passwordEncoder.encode(commonProperties.adminPassword()))
                         .role("ROLE_ADMIN")
                         .build();
                 userRepository.save(admin);

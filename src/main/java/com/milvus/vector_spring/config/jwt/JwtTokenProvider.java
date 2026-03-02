@@ -3,12 +3,12 @@ package com.milvus.vector_spring.config.jwt;
 import com.milvus.vector_spring.common.apipayload.status.ErrorStatus;
 import com.milvus.vector_spring.common.exception.CustomException;
 import com.milvus.vector_spring.common.service.RedisService;
+import com.milvus.vector_spring.util.properties.JwtProperties;
 import com.milvus.vector_spring.user.User;
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
@@ -22,25 +22,17 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class JwtTokenProvider {
 
-    @Value("${jwt.token.secret.key}")
-    private String secretKey;
-
-    @Value("${jwt.access.token.expiration}")
-    private int accessTokenExpiration;
-
-    @Value("${jwt.refresh.token.expiration}")
-    private int refreshTokenExpiration;
-
     private final RedisService redisService;
+    private final JwtProperties jwtProperties;
 
     private SecretKey getSigningKey() {
-        byte[] keyBytes = Decoders.BASE64.decode(this.secretKey);
+        byte[] keyBytes = Decoders.BASE64.decode(jwtProperties.token().secretKey());
         return Keys.hmacShaKeyFor(keyBytes);
     }
 
     public String generateAccessToken(User user) {
         LocalDateTime now = LocalDateTime.now();
-        LocalDateTime expiryDate = now.plusSeconds(accessTokenExpiration / 1000);
+        LocalDateTime expiryDate = now.plusSeconds(jwtProperties.token().accessExpiration() / 1000);
         Header jwtHeader = Jwts.header()
                 .type("JWT")
                 .build();
@@ -57,7 +49,7 @@ public class JwtTokenProvider {
 
     public void generateRefreshToken(User user) {
         LocalDateTime now = LocalDateTime.now();
-        LocalDateTime expiryDate = now.plusSeconds(refreshTokenExpiration / 1000);
+        LocalDateTime expiryDate = now.plusSeconds(jwtProperties.token().refreshExpiration() / 1000);
 
         String refreshToken = Jwts.builder()
                 .issuedAt(java.sql.Timestamp.valueOf(now))
@@ -68,7 +60,7 @@ public class JwtTokenProvider {
             redisService.setRedis(
                     "refreshToken:" + user.getEmail(),
                     refreshToken,
-                    refreshTokenExpiration / 1000
+                    jwtProperties.token().refreshExpiration() / 1000
             );
         } catch (Exception e) {
             System.out.println(e.getMessage());

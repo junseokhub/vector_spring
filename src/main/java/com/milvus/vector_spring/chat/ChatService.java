@@ -25,9 +25,6 @@ import java.util.Optional;
 @Slf4j
 public class ChatService {
 
-    @Value("${open.ai.key}")
-    private String openAiKey;
-
     private final ProjectService projectService;
     private final ContentService contentService;
     private final VectorSearchService vectorSearchService;

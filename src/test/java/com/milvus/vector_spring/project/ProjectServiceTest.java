@@ -10,7 +10,6 @@ import com.milvus.vector_spring.user.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.context.ActiveProfiles;
@@ -31,9 +30,6 @@ class ProjectServiceTest {
     private UserRepository userRepository;
 
     private User user;
-
-    @Value("${open.ai.key}")
-    private String openAiApiKey;
 
     @MockBean
     private MilvusService milvusService;
@@ -76,7 +72,7 @@ class ProjectServiceTest {
                 .name("Updated Project")
                 .updatedUserId(user.getId())
                 .dimensions(3072)
-                .openAiKey(openAiApiKey)
+                .openAiKey("abcd")
                 .chatModel("gpt-4o")
                 .embedModel("text-embedding-3-large")
                 .prompt("Updated Prompt")

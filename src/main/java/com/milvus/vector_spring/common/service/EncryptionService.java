@@ -2,43 +2,42 @@ package com.milvus.vector_spring.common.service;
 
 import com.milvus.vector_spring.common.apipayload.status.ErrorStatus;
 import com.milvus.vector_spring.common.exception.CustomException;
-import com.milvus.vector_spring.config.EncryptionConfig;
-import org.springframework.beans.factory.annotation.Value;
+import com.milvus.vector_spring.util.properties.CommonProperties;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import javax.crypto.Cipher;
-import javax.crypto.SecretKey;
 import javax.crypto.spec.IvParameterSpec;
+import javax.crypto.spec.SecretKeySpec;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 
 @Service
+@RequiredArgsConstructor
+@Slf4j
 public class EncryptionService {
 
-    @Value("${iv.size}")
-    private Integer ivSize;
-
-    private final SecretKey secretKey;
-
-    public EncryptionService(EncryptionConfig encryptionConfig) throws CustomException {
-        this.secretKey = encryptionConfig.getSecretKey();
-    }
+    private final CommonProperties commonProperties;
 
     public String encryptData(String data) {
         try {
             Cipher cipher = Cipher.getInstance("AES/CBC/PKCS5Padding");
 
-            byte[] iv = new byte[ivSize];
+            byte[] keyBytes = commonProperties.secretKey().getBytes(StandardCharsets.UTF_8);
+            SecretKeySpec keySpec = new SecretKeySpec(keyBytes, "AES");
+
+            byte[] iv = new byte[commonProperties.ivSize()];
             new java.security.SecureRandom().nextBytes(iv);
             IvParameterSpec ivSpec = new IvParameterSpec(iv);
 
-            cipher.init(Cipher.ENCRYPT_MODE, secretKey, ivSpec);
+            cipher.init(Cipher.ENCRYPT_MODE, keySpec, ivSpec);
 
             byte[] encryptedData = cipher.doFinal(data.getBytes(StandardCharsets.UTF_8));
 
-            byte[] encryptedWithIv = new byte[ivSize + encryptedData.length];
-            System.arraycopy(iv, 0, encryptedWithIv, 0, ivSize);
-            System.arraycopy(encryptedData, 0, encryptedWithIv, ivSize, encryptedData.length);
+            byte[] encryptedWithIv = new byte[commonProperties.ivSize() + encryptedData.length];
+            System.arraycopy(iv, 0, encryptedWithIv, 0, commonProperties.ivSize());
+            System.arraycopy(encryptedData, 0, encryptedWithIv, commonProperties.ivSize(), encryptedData.length);
 
             return Base64.getEncoder().encodeToString(encryptedWithIv);
         } catch (Exception e) {
@@ -52,14 +51,17 @@ public class EncryptionService {
 
             byte[] decodedData = Base64.getDecoder().decode(encryptedData);
 
-            byte[] iv = new byte[ivSize];
-            System.arraycopy(decodedData, 0, iv, 0, ivSize);
+            byte[] iv = new byte[commonProperties.ivSize()];
+            System.arraycopy(decodedData, 0, iv, 0, commonProperties.ivSize());
             IvParameterSpec ivSpec = new IvParameterSpec(iv);
 
-            byte[] encryptedContent = new byte[decodedData.length - ivSize];
-            System.arraycopy(decodedData, ivSize, encryptedContent, 0, encryptedContent.length);
+            byte[] encryptedContent = new byte[decodedData.length - commonProperties.ivSize()];
+            System.arraycopy(decodedData, commonProperties.ivSize(), encryptedContent, 0, encryptedContent.length);
 
-            cipher.init(Cipher.DECRYPT_MODE, secretKey, ivSpec);
+            byte[] keyBytes = commonProperties.secretKey().getBytes(StandardCharsets.UTF_8);
+            SecretKeySpec keySpec = new SecretKeySpec(keyBytes, "AES");
+
+            cipher.init(Cipher.DECRYPT_MODE, keySpec, ivSpec);
 
             byte[] decryptedData = cipher.doFinal(encryptedContent);
 

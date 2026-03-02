@@ -4,9 +4,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.milvus.vector_spring.common.apipayload.status.ErrorStatus;
 import com.milvus.vector_spring.common.exception.CustomException;
 import com.milvus.vector_spring.config.WebClientConfig;
+import com.milvus.vector_spring.util.properties.OpenAiProperties;
 import com.milvus.vector_spring.openai.dto.*;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 
@@ -17,11 +17,7 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class OpenAiServiceImpl implements OpenAiService {
 
-    @Value("${open.ai.url}")
-    private String openAiUrl;
-
-    @Value("${embed.url}")
-    private String embedUrl;
+    private final OpenAiProperties openAiProperties;
 
     private final WebClientConfig webClientConfig;
 
@@ -42,7 +38,7 @@ public class OpenAiServiceImpl implements OpenAiService {
         );
 
         try {
-            String res = connect(openAiUrl, openAiKey).post()
+            String res = connect(openAiProperties.url(), openAiKey).post()
                     .bodyValue(requestBody)
                     .retrieve()
                     .bodyToMono(String.class)
@@ -63,7 +59,7 @@ public class OpenAiServiceImpl implements OpenAiService {
                 "input", embedRequestDto.getEmbedText()
         );
         try {
-            String res = connect(embedUrl, openAiKey).post()
+            String res = connect(openAiProperties.embedUrl(), openAiKey).post()
                     .bodyValue(requestBody)
                     .retrieve()
                     .bodyToMono(String.class)
@@ -108,7 +104,7 @@ public class OpenAiServiceImpl implements OpenAiService {
         );
 
         try {
-            String res = connect(openAiUrl, openAiKey).post()
+            String res = connect(openAiProperties.url(), openAiKey).post()
                     .bodyValue(requestBody)
                     .retrieve()
                     .bodyToMono(String.class)
