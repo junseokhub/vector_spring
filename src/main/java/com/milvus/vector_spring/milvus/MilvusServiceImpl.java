@@ -6,7 +6,6 @@ import com.milvus.vector_spring.common.apipayload.status.ErrorStatus;
 import com.milvus.vector_spring.common.exception.CustomException;
 import com.milvus.vector_spring.util.properties.MilvusProperties;
 import com.milvus.vector_spring.milvus.dto.InsertRequestDto;
-import io.milvus.v2.client.ConnectConfig;
 import io.milvus.v2.client.MilvusClientV2;
 import io.milvus.v2.common.DataType;
 import io.milvus.v2.common.IndexParam;
@@ -34,21 +33,10 @@ import java.util.Map;
 public class MilvusServiceImpl implements MilvusService {
 
     private final MilvusProperties milvusProperties;
-
-    @Override
-    public MilvusClientV2 connect() throws CustomException {
-        ConnectConfig connectConfig = ConnectConfig.builder()
-                .uri(milvusProperties.clusterEndpoint())
-                .token(milvusProperties.token())
-                .build();
-        MilvusClientV2 client = new MilvusClientV2(connectConfig);
-        System.out.println("Connected to Milvus at: " + milvusProperties.clusterEndpoint());
-        return client;
-    }
+    private final MilvusClientV2 client;
 
     @Override
     public void createSchema(Long dbKey, int dimension) {
-        MilvusClientV2 client = connect();
         try {
             List<String> existingCollections = client.listCollections().getCollectionNames();
             if (existingCollections.contains(milvusProperties.collectionName() + dbKey)) {
@@ -127,7 +115,6 @@ public class MilvusServiceImpl implements MilvusService {
 
     @Override
     public boolean checkCollectionLoadState(Long dbKey) {
-        MilvusClientV2 client = connect();
         GetLoadStateReq loadStateReq = GetLoadStateReq.builder()
                 .collectionName(milvusProperties.collectionName() + dbKey)
                 .build();
@@ -138,7 +125,6 @@ public class MilvusServiceImpl implements MilvusService {
 
     @Override
     public void upsertCollection(long id, InsertRequestDto insertRequestDto, Long dbKey) {
-        MilvusClientV2 client = connect();
         JsonObject dataObject = new JsonObject();
         JsonArray vectorArray = new JsonArray();
 
@@ -166,7 +152,6 @@ public class MilvusServiceImpl implements MilvusService {
     @Override
     public void deleteCollection(long id) {
         try {
-            MilvusClientV2 client = connect();
             DeleteReq deleteReq = DeleteReq.builder()
                     .collectionName(milvusProperties.collectionName() + id)
                     .filter("id in [" + id + "]")
@@ -179,7 +164,6 @@ public class MilvusServiceImpl implements MilvusService {
 
     @Override
     public boolean hasCollection() {
-        MilvusClientV2 client = connect();
         HasCollectionReq hasCollectionReq = HasCollectionReq.builder()
                 .collectionName(milvusProperties.collectionName())
                 .build();
@@ -187,7 +171,6 @@ public class MilvusServiceImpl implements MilvusService {
     }
 
     public SearchResp vectorSearch(List<Float> vectorData, Long dbKey) {
-        MilvusClientV2 client = connect();
         try {
             List<BaseVector> baseVectors = new ArrayList<>();
             if (vectorData != null) {

@@ -87,12 +87,18 @@ public class ProjectService  {
 
     @Transactional
     public Project updateProject(String key, ProjectUpdateRequestDto dto) {
-        User user = userService.findOneUser(dto.getUpdatedUserId());
-        Project project = projectRepository.findProjectByKey(key)
-                .orElseThrow(() -> new CustomException(ErrorStatus.NOT_FOUND_PROJECT));
-        String secretKey = resolveOpenAiKey(project, dto);
-        project.update(dto, secretKey, user);
-        return project;
+        log.info("test");
+        try {
+            User user = userService.findOneUser(dto.getUpdatedUserId());
+            Project project = projectRepository.findProjectByKey(key)
+                    .orElseThrow(() -> new CustomException(ErrorStatus.NOT_FOUND_PROJECT));
+            String secretKey = resolveOpenAiKey(project, dto);
+            project.update(dto, secretKey, user);
+            return project;
+        }catch (Exception e) {
+            log.error("up Project Error: {}", e.getMessage());
+            throw new CustomException(ErrorStatus.MILVUS_DATABASE_ERROR, e.getMessage());
+        }
     }
 
     @Transactional

@@ -4,7 +4,11 @@ import com.milvus.vector_spring.chat.dto.ChatRequestDto;
 import com.milvus.vector_spring.chat.dto.ChatResponseDto;
 import jakarta.servlet.http.HttpSession;
 import lombok.RequiredArgsConstructor;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+import reactor.core.publisher.Mono;
 
 import java.util.UUID;
 
@@ -15,7 +19,7 @@ public class ChatController {
     private final ChatService chatService;
 
     @PostMapping()
-    public ChatResponseDto search(@RequestBody ChatRequestDto chatRequestDto, HttpSession session) {
+    public Mono<ChatResponseDto> search(@RequestBody ChatRequestDto chatRequestDto, HttpSession session) {
         if (session.getAttribute("sessionId") == null) {
             String sessionId = UUID.randomUUID().toString();
             session.setAttribute("sessionId", sessionId);
