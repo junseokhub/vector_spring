@@ -11,11 +11,13 @@ public class ChatRequestDto {
     private String text;
     private String projectKey;
     private Long userId;
+    private String sessionId;
 
     @Builder
-    public ChatRequestDto(String text, String projectKey, Long userId) {
+    public ChatRequestDto(String text, String projectKey, Long userId, String sessionId) {
         this.text = text;
         this.projectKey = projectKey;
         this.userId = userId;
+        this.sessionId = sessionId;
     }
 }
