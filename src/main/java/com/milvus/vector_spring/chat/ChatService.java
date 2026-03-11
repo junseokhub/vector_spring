@@ -46,23 +46,24 @@ public class ChatService {
             // 3. Vector 검색
             VectorSearchResponseDto searchResp = vectorSearchService.searchVector(embedding, project.getId());
 
-            // 4. Content 조회 (기존 fetchContent 로직)
-            Optional<Content> contentOpt = Optional.empty();
-            if (searchResp.getFirstSearchId() != null) {
-                contentOpt = contentService.findOneContentByContentId(searchResp.getFirstSearchId());
-            }
-
-            // 5. 답변 생성
+            // 4. 답변 생성
             AnswerGenerationResultDto answer = chatCompletionService.generateAnswerWithDecision(
                     project.getChatModel(), requestDto.getText(), secretKey,
                     vectorSearchService.convertToRankList(searchResp),
                     searchResp, project.getPrompt(), embedding);
 
+            // 5. 답변 여부에 따라 Content 노출
+            Content finalContent = Optional.of(answer)
+                    .filter(result -> !result.isPromptAnswer())
+                    .map(result -> searchResp.getFirstSearchId())
+                    .map(contentService::findOneContentByContentId)
+                    .orElse(null);
+
             LocalDateTime outputTime = LocalDateTime.now();
 
             // 6. 결과 객체 생성
             ChatProcessResultDto result = createProcessResult(
-                    requestDto.getSessionId(), inputTime, outputTime, searchResp, contentOpt, answer
+                    requestDto.getSessionId(), inputTime, outputTime, searchResp, finalContent, answer
             );
 
             // 7. [Kafka로 전환]
@@ -96,13 +97,12 @@ public class ChatService {
         kafkaTemplate.send(kafkaProperties.topic(), event.getSessionId(), event);
     }
 
-
     private ChatProcessResultDto createProcessResult(
             String sessionId,
             LocalDateTime inputTime,
             LocalDateTime outputTime,
             VectorSearchResponseDto searchResp,
-            Optional<Content> content,
+            Content content,
             AnswerGenerationResultDto answer
     ) {
 
@@ -111,7 +111,7 @@ public class ChatService {
                 answer.getFinalAnswer(),
                 inputTime,
                 outputTime,
-                content.orElse(null),
+                content,
                 vectorSearchService.convertToRankList(searchResp),
                 searchResp.getSearch()
         );

@@ -17,5 +17,4 @@ public class VectorSearchResponseDto {
         this.firstSearchId = firstSearchId;
         this.answers = answers;
     }
-
 }

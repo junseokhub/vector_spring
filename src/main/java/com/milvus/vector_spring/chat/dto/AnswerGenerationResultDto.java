@@ -13,4 +13,5 @@ public class AnswerGenerationResultDto {
     private String finalAnswer;
     private long totalToken;
     private LocalDateTime outputDateTime;
+    private boolean isPromptAnswer;
 }

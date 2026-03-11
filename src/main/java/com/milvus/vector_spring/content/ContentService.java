@@ -18,7 +18,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
 
 @Service
@@ -41,12 +40,18 @@ public class ContentService {
                 .orElseThrow(() -> new CustomException(ErrorStatus.NOT_FOUND_CONTENT));
     }
 
-    public Optional<Content> findOneContentByContnetKey(String contentKey) {
-        return contentRepository.findOneContentByKey(contentKey);
+    public Content findOneContentByContnetKey(String contentKey) {
+        return contentRepository.findOneContentByKey(contentKey)
+                .orElseThrow(() -> new CustomException(ErrorStatus.NOT_FOUND_CONTENT));
     }
 
-    public Optional<Content> findOneContentByContentId(Long id) {
-        return contentRepository.findById(id);
+    public Content findOneContentByContentId(Long id) {
+        return contentRepository.findById(id)
+                .orElseThrow(() -> new CustomException(ErrorStatus.NOT_FOUND_CONTENT));
+    }
+
+    public List<Content> findAllContentByProject(String projectKey) {
+        return contentRepository.findByProjectKey(projectKey);
     }
 
     @Transactional

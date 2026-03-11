@@ -9,7 +9,6 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.Optional;
 
 import static com.milvus.vector_spring.common.Const.CONTENT_ID;
 import static com.milvus.vector_spring.common.Const.USER_ID;
@@ -37,8 +36,8 @@ public class ContentController {
 
     @GetMapping("/detail/{key}")
     public ContentResponseDto findOneContentByKey(@PathVariable String key) {
-        Optional<Content> content = contentService.findOneContentByContnetKey(key);
-        return ContentResponseDto.from(content.orElse(null));
+        Content content = contentService.findOneContentByContnetKey(key);
+        return ContentResponseDto.from(content);
     }
 
     @PostMapping("/create")

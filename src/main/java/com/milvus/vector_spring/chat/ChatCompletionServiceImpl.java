@@ -35,6 +35,7 @@ public class ChatCompletionServiceImpl implements ChatCompletionService {
     ) {
         String finalAnswer;
         long totalToken;
+        boolean isPromptAnswer;
 
         if (rankList.isEmpty() || rankList.get(0).getScore() < 0.2) {
             try {
@@ -56,15 +57,17 @@ public class ChatCompletionServiceImpl implements ChatCompletionService {
                         answer.usage().stream()
                                 .mapToLong(CompletionUsage::totalTokens)
                                 .sum();
+                isPromptAnswer = true;
             } catch (Exception e) {
                 throw new CustomException(ErrorStatus.OPEN_AI_ERROR);
             }
         } else {
             totalToken = embeddingResponse.usage().totalTokens();
             finalAnswer = rankList.get(0).getAnswer();
+            isPromptAnswer = false;
         }
 
-        return new AnswerGenerationResultDto(finalAnswer, totalToken, LocalDateTime.now());
+        return new AnswerGenerationResultDto(finalAnswer, totalToken, LocalDateTime.now(), isPromptAnswer);
     }
 
 //    @Override
