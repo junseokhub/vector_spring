@@ -54,4 +54,23 @@ public class VectorSearchServiceImpl implements VectorSearchService {
             throw new CustomException(ErrorStatus.DATA_PARSE_ERROR);
         }
     }
+
+//    Normalization
+//    private List<Float> normalize(List<Float> vector) {
+//        double sum = 0.0;
+//
+//        for (Float v : vector) {
+//            sum += v * v;
+//        }
+//
+//        double norm = Math.sqrt(sum);
+//
+//        List<Float> result = new ArrayList<>();
+//
+//        for (Float v : vector) {
+//            result.add((float) (v / norm));
+//        }
+//
+//        return result;
+//    }
 }

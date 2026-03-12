@@ -18,5 +18,4 @@ public interface ContentRepository extends JpaRepository<Content, Long> {
 
     @Query("SELECT c FROM Content c WHERE c.project.key = :projectKey")
     List<Content> findByProjectKey(@Param("projectKey") String projectKey);
-
 }

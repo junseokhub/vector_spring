@@ -98,7 +98,7 @@ public class MilvusServiceImpl implements MilvusService {
                     .fieldName("vector")
                     .indexType(IndexParam.IndexType.HNSW)
                     .metricType(IndexParam.MetricType.COSINE)
-                    .extraParams(Map.of("efConstruction", 100, "M", 16))
+                    .extraParams(Map.of("efConstruction", 300, "M", 32))
                     .build();
 
             return List.of(indexParamForVectorField);
@@ -182,7 +182,7 @@ public class MilvusServiceImpl implements MilvusService {
                     .collectionName(milvusProperties.collectionName() + dbKey)
                     .data(baseVectors)
                     .limit(5)
-                    .searchParams(Map.of("metric_type", "COSINE", "efConstruction", 100, "M", 16))
+                    .searchParams(Map.of("metric_type", "COSINE", "ef", 300))
                     .outputFields(fields)
                     .build();
 

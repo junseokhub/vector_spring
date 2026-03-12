@@ -37,7 +37,7 @@ public class ChatCompletionServiceImpl implements ChatCompletionService {
         long totalToken;
         boolean isPromptAnswer;
 
-        if (rankList.isEmpty() || rankList.get(0).getScore() < 0.2) {
+        if (rankList.isEmpty() || rankList.get(0).getScore() <= 0.5) {
             try {
                 OpenAiChatLibraryRequestDto dto = OpenAiChatLibraryRequestDto.builder()
                         .model(chatModel)

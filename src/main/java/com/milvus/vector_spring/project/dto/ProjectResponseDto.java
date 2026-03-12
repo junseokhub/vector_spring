@@ -11,10 +11,10 @@ public class ProjectResponseDto {
     private final Long id;
     private final String name;
     private final String key;
-    private String prompt;
-    private String embedModel;
-    private String chatModel;
-    private long dimensions;
+    private final String prompt;
+    private final String embedModel;
+    private final String chatModel;
+    private final long dimensions;
     private final Long createdUserId;
     private final Long updatedUserId;
     private final LocalDateTime createdAt;

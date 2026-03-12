@@ -6,6 +6,7 @@ import com.milvus.vector_spring.common.service.EncryptionService;
 import com.milvus.vector_spring.content.Content;
 import com.milvus.vector_spring.content.ContentRepository;
 import com.milvus.vector_spring.milvus.MilvusService;
+import com.milvus.vector_spring.project.dto.ProjectContentsResponseDto;
 import com.milvus.vector_spring.project.dto.ProjectCreateRequestDto;
 import com.milvus.vector_spring.project.dto.ProjectDeleteRequestDto;
 import com.milvus.vector_spring.project.dto.ProjectUpdateRequestDto;
@@ -90,6 +91,14 @@ public class ProjectService  {
             log.error("up Project Error: {}", e.getMessage());
             throw new CustomException(ErrorStatus.MILVUS_DATABASE_ERROR, e.getMessage());
         }
+    }
+
+    // Lazy Loading
+    @Transactional(readOnly = true)
+    public ProjectContentsResponseDto getProjectWithContents(String key) {
+        Project project = findOneProjectByKey(key);
+        List<Content> contents = contentRepository.findByProjectKey(project.getKey());
+        return ProjectContentsResponseDto.projectContentsResponseDto(project, contents);
     }
 
     @Transactional

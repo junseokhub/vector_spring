@@ -1,7 +1,5 @@
 package com.milvus.vector_spring.project;
 
-import com.milvus.vector_spring.content.Content;
-import com.milvus.vector_spring.content.ContentService;
 import com.milvus.vector_spring.project.dto.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -16,7 +14,6 @@ import java.util.List;
 public class ProjectController {
 
     private final ProjectService projectService;
-    private final ContentService contentService;
 
     @GetMapping()
     public List<ProjectResponseDto> findAllProjects() {
@@ -40,10 +37,7 @@ public class ProjectController {
 
     @GetMapping("/contents/{key}")
     public ProjectContentsResponseDto findOneProjectWithContents(@PathVariable String key) {
-        Project project = projectService.findOneProjectByKey(key);
-//        List<Content> contentsz = project.getContents();
-        List<Content> contents = contentService.findAllContentByProject(project.getKey());
-        return ProjectContentsResponseDto.projectContentsResponseDto(project, contents);
+        return projectService.getProjectWithContents(key);
     }
 
     @PostMapping("/create")
