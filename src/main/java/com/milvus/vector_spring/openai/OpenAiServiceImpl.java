@@ -31,7 +31,6 @@ public class OpenAiServiceImpl implements OpenAiService {
 
     @Override
     public OpenAiChatResponseDto chat(String openAiKey, OpenAiChatRequestDto openAiChatRequestDto) throws CustomException {
-        ObjectMapper objectMapper = new ObjectMapper();
         Map<String, Object> requestBody = Map.of(
                 "model", openAiChatRequestDto.getModel(),
                 "messages", openAiChatRequestDto.getMessages()
@@ -71,7 +70,6 @@ public class OpenAiServiceImpl implements OpenAiService {
 
     @Override
     public OpenAiZodResponseDto zod(String openAiKey, OpenAiChatRequestDto openAiChatRequestDto) throws CustomException {
-        ObjectMapper objectMapper = new ObjectMapper();
         Map<String, Object> responseFormat = Map.of(
                 "type", "json_schema",
                 "json_schema", Map.of(

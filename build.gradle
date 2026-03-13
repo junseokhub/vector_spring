@@ -22,6 +22,8 @@ configurations {
 
 repositories {
 	mavenCentral()
+	maven { url 'https://repo.spring.io/milestone' }
+	maven { url 'https://repo.spring.io/snapshot' }
 }
 
 dependencies {
@@ -38,6 +40,9 @@ dependencies {
 	implementation 'org.springframework.boot:spring-boot-starter-mail'
 	implementation 'org.springframework.boot:spring-boot-starter-data-mongodb'
 	implementation 'com.openai:openai-java:2.7.0'
+
+	implementation 'com.github.ben-manes.caffeine:caffeine'
+	implementation "org.springframework.ai:spring-ai-openai-spring-boot-starter:1.0.0-M3"
 
 	annotationProcessor "com.querydsl:querydsl-apt:${dependencyManagement.importedProperties['querydsl.version']}:jakarta"
 	annotationProcessor 'jakarta.annotation:jakarta.annotation-api'
@@ -60,8 +65,6 @@ dependencies {
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8"
 
 	implementation 'org.springframework.kafka:spring-kafka'
-
-	implementation "io.netty:netty-resolver-dns-native-macos:4.1.107.Final:osx-aarch_64"
 }
 
 def generated = 'src/main/generated'
