@@ -18,7 +18,7 @@ import java.util.Map;
 public class OpenAiServiceImpl implements OpenAiService {
 
     private final OpenAiProperties openAiProperties;
-
+    private final ObjectMapper objectMapper;
     private final WebClientConfig webClientConfig;
 
     private WebClient connect(String url, String openAiKey) {
@@ -52,7 +52,6 @@ public class OpenAiServiceImpl implements OpenAiService {
 
     @Override
     public OpenAiEmbedResponseDto embedding(String openAiKey, EmbedRequestDto embedRequestDto) throws CustomException {
-        ObjectMapper objectMapper = new ObjectMapper();
         Map<String, Object> requestBody = Map.of(
                 "model", embedRequestDto.getEmbedModel(),
                 "dimension", embedRequestDto.getDimension(),

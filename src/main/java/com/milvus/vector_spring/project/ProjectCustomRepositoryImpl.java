@@ -1,7 +1,11 @@
 package com.milvus.vector_spring.project;
 
+import com.milvus.vector_spring.invite.dto.CombinedProjectListResponseDto;
+import com.milvus.vector_spring.invite.dto.QCombinedProjectListResponseDto;
+import com.querydsl.core.types.dsl.Expressions;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 
+import java.util.List;
 import java.util.Optional;
 
 public class ProjectCustomRepositoryImpl implements ProjectCustomRepository {
@@ -22,23 +26,23 @@ public class ProjectCustomRepositoryImpl implements ProjectCustomRepository {
         return Optional.ofNullable(projectResult);
     }
 
-//    @Override
-//    public List<CombinedProjectListResponseDto> findCombinedProjects(User user) {
-//
-//        List<CombinedProjectListResponseDto> myProjects = queryFactory
-//                .select(new QCombinedProjectListResponseDto(project, Expressions.asBoolean(true)))
-//                .from(project)
-//                .where(project.createdBy.eq(user.getId()))
-//                .fetch();
-//
-//        List<CombinedProjectListResponseDto> invitedProjects = queryFactory
-//                .select(new QCombinedProjectListResponseDto(invite.project, Expressions.asBoolean(false)))
-//                .from(invite)
-//                .join(invite.project, project)
-//                .where(invite.receivedEmail.eq(user.getEmail()))
-//                .fetch();
-//
-//        myProjects.addAll(invitedProjects);
-//        return myProjects;
-//    }
+    @Override
+    public List<CombinedProjectListResponseDto> findMyProjectsAsDto(Long userId) {
+        QProject project = QProject.project;
+
+        return queryFactory
+                .select(new QCombinedProjectListResponseDto(
+                        project.id,
+                        Expressions.asBoolean(true).as("mine"), // 내 프로젝트이므로 true
+                        project.name,
+                        project.key,
+                        project.createdBy.id,
+                        project.updatedBy.id,
+                        project.createdAt,
+                        project.updatedAt
+                ))
+                .from(project)
+                .where(project.createdBy.id.eq(userId))
+                .fetch();
+    }
 }

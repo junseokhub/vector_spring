@@ -1,39 +1,36 @@
 package com.milvus.vector_spring.invite.dto;
 
-import com.milvus.vector_spring.project.Project;
 import com.querydsl.core.annotations.QueryProjection;
-import lombok.AllArgsConstructor;
+import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
-
+import lombok.NoArgsConstructor;
 import java.time.LocalDateTime;
 
 @Getter
-@Builder
-@AllArgsConstructor
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class CombinedProjectListResponseDto {
-    private final Long id;
-    private final boolean mine;
-    private final String name;
-    private final String key;
-    private final Long createdUserId;
-    private final Long updatedUserId;
-    private final LocalDateTime createdAt;
-    private final LocalDateTime updatedAt;
+    private Long id;
+    private boolean mine;
+    private String name;
+    private String key;
+    private Long createdUserId;
+    private Long updatedUserId;
+    private LocalDateTime createdAt;
+    private LocalDateTime updatedAt;
 
+    @Builder
     @QueryProjection
-    public CombinedProjectListResponseDto(Project project, boolean mine) {
-        this.id = project.getId();
+    public CombinedProjectListResponseDto(Long id, boolean mine, String name, String key,
+                                          Long createdUserId, Long updatedUserId,
+                                          LocalDateTime createdAt, LocalDateTime updatedAt) {
+        this.id = id;
         this.mine = mine;
-        this.name = project.getName();
-        this.key = project.getKey();
-        this.createdUserId = (project.getCreatedBy() != null) ? project.getCreatedBy().getId() : null;
-        this.updatedUserId = (project.getUpdatedBy() != null) ? project.getUpdatedBy().getId() : null;
-        this.createdAt = project.getCreatedAt();
-        this.updatedAt = project.getUpdatedAt();
-    }
-
-    public static CombinedProjectListResponseDto from(Project project, boolean mine) {
-        return new CombinedProjectListResponseDto(project, mine);
+        this.name = name;
+        this.key = key;
+        this.createdUserId = createdUserId;
+        this.updatedUserId = updatedUserId;
+        this.createdAt = createdAt;
+        this.updatedAt = updatedAt;
     }
 }

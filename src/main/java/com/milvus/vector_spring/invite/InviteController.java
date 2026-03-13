@@ -17,7 +17,7 @@ public class InviteController {
     @PostMapping()
     public ResponseEntity<InviteResponseDto> inviteUser(@Validated @RequestBody InviteUserRequestDto inviteUserRequestDto) {
         Invite invite = inviteService.inviteUser(inviteUserRequestDto);
-        return ResponseEntity.ok(InviteResponseDto.inviteResponseDto(invite));
+        return ResponseEntity.ok(new InviteResponseDto(invite));
     }
 
     @PostMapping("/list")

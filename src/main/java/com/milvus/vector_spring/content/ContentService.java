@@ -41,8 +41,7 @@ public class ContentService {
     }
 
     public Content findOneContentByContnetKey(String contentKey) {
-        return contentRepository.findOneContentByKey(contentKey)
-                .orElseThrow(() -> new CustomException(ErrorStatus.NOT_FOUND_CONTENT));
+        return contentRepository.findOneContentByKey(contentKey);
     }
 
     public Content findOneContentByContentId(Long id) {
@@ -91,11 +90,10 @@ public class ContentService {
     @Transactional
     public Content updateContent(long id, ContentUpdateRequestDto dto) {
         User user = userService.findOneUser(dto.getUpdatedUserId());
-        Content content = contentRepository.findById(id)
-                .orElseThrow(() -> new CustomException(ErrorStatus.NOT_FOUND_CONTENT));
-        Project project = projectService.findOneProject(content.getProject().getId());
+        Content content = contentRepository.findByIdWithProjectAndUser(id);
+        if (content == null) throw new CustomException(ErrorStatus.NOT_FOUND_CONTENT);
 
-        content.update(dto.getTitle(), dto.getAnswer(), user);
+        Project project = content.getProject();
 
         if (!content.getAnswer().equals(dto.getAnswer())) {
             String key = encryptionService.decryptData(project.getOpenAiKey());

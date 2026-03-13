@@ -1,55 +1,37 @@
 package com.milvus.vector_spring.openai.dto;
 
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import lombok.Getter;
-
 import java.util.List;
 
-@Getter
-@JsonIgnoreProperties(ignoreUnknown = true)
-public class OpenAiZodResponseDto {
+public record OpenAiZodResponseDto(
+        List<ZodResponse> res,
+        OpenAiUsageResponseDto usage
+) {
+    public record ZodResponse(
+            String title,
+            String answer
+    ) {}
 
-    private final List<ZodResponse> res;
-    private final OpenAiUsageResponseDto usage;
+    public static OpenAiZodResponseDto of(JsonNode rootNode, ObjectMapper objectMapper) {
+        try {
+            String content = rootNode.path("choices").path(0).path("message").path("content").asText();
 
-    public OpenAiZodResponseDto(List<ZodResponse> res, OpenAiUsageResponseDto usage) {
-        this.res = res;
-        this.usage = usage;
-    }
+            JsonNode contentJson = objectMapper.readTree(content);
+            List<ZodResponse> res = objectMapper.convertValue(
+                    contentJson.path("res"),
+                    new TypeReference<List<ZodResponse>>() {}
+            );
 
-    @Getter
-    public static class ZodResponse {
-        private final String title;
-        private final String answer;
+            OpenAiUsageResponseDto usage = objectMapper.convertValue(
+                    rootNode.path("usage"),
+                    OpenAiUsageResponseDto.class
+            );
 
-        public ZodResponse(@JsonProperty("title") String title, @JsonProperty("answer") String answer) {
-            this.title = title;
-            this.answer = answer;
+            return new OpenAiZodResponseDto(res, usage);
+        } catch (Exception e) {
+            return new OpenAiZodResponseDto(List.of(), null);
         }
-    }
-
-    private static final ObjectMapper objectMapper = new ObjectMapper();
-
-    public static OpenAiZodResponseDto fromJson(JsonNode jsonNode) {
-        JsonNode contentNode = jsonNode.path("choices").path(0).path("message").path("content");
-
-        if (contentNode.isTextual()) {
-            try {
-                JsonNode contentJson = objectMapper.readTree(contentNode.asText());
-                List<ZodResponse> res = objectMapper.convertValue(
-                        contentJson.get("res"),
-                        new TypeReference<List<ZodResponse>>() {}
-                );
-                OpenAiUsageResponseDto usage = objectMapper.convertValue(jsonNode.get("usage"), OpenAiUsageResponseDto.class);
-                return new OpenAiZodResponseDto(res, usage);
-            } catch (Exception e) {
-                return new OpenAiZodResponseDto(List.of(), null);
-            }
-        }
-        return new OpenAiZodResponseDto(List.of(), null);
     }
 }

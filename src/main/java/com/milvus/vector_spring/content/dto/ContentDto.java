@@ -1,20 +1,26 @@
 package com.milvus.vector_spring.content.dto;
 
 import com.milvus.vector_spring.content.Content;
-import lombok.AllArgsConstructor;
+import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 @Getter
-@Builder
-@NoArgsConstructor
-@AllArgsConstructor
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class ContentDto {
     private Long id;
     private String key;
     private String title;
     private String answer;
+
+    @Builder
+    private ContentDto(Long id, String key, String title, String answer) {
+        this.id = id;
+        this.key = key;
+        this.title = title;
+        this.answer = answer;
+    }
 
     public ContentDto(Content content) {
         if (content != null) {
@@ -22,11 +28,6 @@ public class ContentDto {
             this.key = content.getKey();
             this.title = content.getTitle();
             this.answer = content.getAnswer();
-        } else {
-            this.id = null;
-            this.key = null;
-            this.title = null;
-            this.answer = null;
         }
     }
 }

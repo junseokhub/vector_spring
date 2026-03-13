@@ -5,6 +5,7 @@ import com.milvus.vector_spring.common.exception.CustomException;
 import com.milvus.vector_spring.common.service.EncryptionService;
 import com.milvus.vector_spring.content.Content;
 import com.milvus.vector_spring.content.ContentRepository;
+import com.milvus.vector_spring.invite.dto.CombinedProjectListResponseDto;
 import com.milvus.vector_spring.milvus.MilvusService;
 import com.milvus.vector_spring.project.dto.ProjectContentsResponseDto;
 import com.milvus.vector_spring.project.dto.ProjectCreateRequestDto;
@@ -34,6 +35,10 @@ public class ProjectService  {
 
     public List<Project> findAllProject() {
         return projectRepository.findAll();
+    }
+
+    public List<CombinedProjectListResponseDto> findMyProjectsAsDto(Long userId) {
+        return projectRepository.findMyProjectsAsDto(userId);
     }
 
     public Project findOneProject(Long id) {
@@ -98,7 +103,7 @@ public class ProjectService  {
     public ProjectContentsResponseDto getProjectWithContents(String key) {
         Project project = findOneProjectByKey(key);
         List<Content> contents = contentRepository.findByProjectKey(project.getKey());
-        return ProjectContentsResponseDto.projectContentsResponseDto(project, contents);
+        return ProjectContentsResponseDto.from(project, contents);
     }
 
     @Transactional

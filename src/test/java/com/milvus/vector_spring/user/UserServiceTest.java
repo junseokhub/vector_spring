@@ -1,7 +1,6 @@
 package com.milvus.vector_spring.user;
 
 import com.milvus.vector_spring.common.exception.CustomException;
-import com.milvus.vector_spring.user.dto.UserProjectsResponseDto;
 import com.milvus.vector_spring.user.dto.UserSignUpRequestDto;
 import com.milvus.vector_spring.user.dto.UserUpdateRequestDto;
 import org.junit.jupiter.api.Test;
@@ -77,16 +76,6 @@ class UserServiceTest {
         });
 
         assertThat(exception.getBaseCode()).isEqualTo(NOT_FOUND_USER);
-    }
-
-    @Test
-    void find_user_with_projects() {
-        User user = userService.signUpUser(createUserDto("proj@example.com", "withproject", "Password1!"));
-
-        UserProjectsResponseDto projectDto = userService.findOneUserWithProjects(user.getId());
-
-        assertThat(projectDto).isNotNull();
-        assertThat(projectDto.getId()).isEqualTo(user.getId());
     }
 
     @Test

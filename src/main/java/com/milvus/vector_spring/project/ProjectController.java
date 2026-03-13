@@ -19,20 +19,20 @@ public class ProjectController {
     public List<ProjectResponseDto> findAllProjects() {
         List<Project> projects = projectService.findAllProject();
         return projects.stream()
-                .map(ProjectResponseDto::projectResponseDto)
+                .map(ProjectResponseDto::from)
                 .toList();
     }
 
     @GetMapping("/{id}")
     public ProjectResponseDto findOneProject(@PathVariable Long id) {
         Project project = projectService.findOneProject(id);
-        return ProjectResponseDto.projectResponseDto(project);
+        return ProjectResponseDto.from(project);
     }
 
     @GetMapping("/search")
     public ProjectResponseDto findOneProjectByKey(@RequestParam String key) {
         Project project = projectService.findOneProjectByKey(key);
-        return ProjectResponseDto.projectResponseDto(project);
+        return ProjectResponseDto.from(project);
     }
 
     @GetMapping("/contents/{key}")
@@ -43,13 +43,13 @@ public class ProjectController {
     @PostMapping("/create")
     public ResponseEntity<ProjectResponseDto> createProject(@Validated @RequestBody ProjectCreateRequestDto projectCreateRequestDto) {
         Project project = projectService.createProject(projectCreateRequestDto);
-        return ResponseEntity.ok(ProjectResponseDto.projectResponseDto(project));
+        return ResponseEntity.ok(ProjectResponseDto.from(project));
     }
 
     @PostMapping("/update/{key}")
     public ResponseEntity<ProjectResponseDto> updateProject(@PathVariable String key, @Validated @RequestBody ProjectUpdateRequestDto projectUpdateRequestDto) {
         Project project = projectService.updateProject(key, projectUpdateRequestDto);
-        return ResponseEntity.ok(ProjectResponseDto.projectResponseDto(project));
+        return ResponseEntity.ok(ProjectResponseDto.from(project));
     }
 
     @DeleteMapping()

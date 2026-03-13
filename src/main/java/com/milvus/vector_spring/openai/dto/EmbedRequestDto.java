@@ -3,7 +3,7 @@ package com.milvus.vector_spring.openai.dto;
 import jakarta.validation.constraints.NotNull;
 import lombok.*;
 
-@Data
+@Getter
 @NoArgsConstructor
 public class EmbedRequestDto {
     @NotNull

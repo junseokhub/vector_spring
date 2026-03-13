@@ -1,6 +1,5 @@
 package com.milvus.vector_spring.project;
 
-import com.milvus.vector_spring.invite.dto.CombinedProjectListResponseDto;
 import jakarta.persistence.LockModeType;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
@@ -20,10 +19,6 @@ public interface ProjectRepository  extends JpaRepository<Project, Long>, Projec
 
     @Query("SELECT p FROM Project p JOIN FETCH p.createdBy WHERE p.createdBy.id = :userId")
     List<Project> findAllByCreatedBy(@Param("userId") Long userId);
-    // dto projection
-    @Query("SELECT new com.milvus.vector_spring.invite.dto.CombinedProjectListResponseDto(p, true) " +
-            "FROM Project p WHERE p.createdBy = :userId")
-    List<CombinedProjectListResponseDto> findMyProjectsAsDto(@Param("userId") Long userId);
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select p from Project p where p.key = :key")

@@ -4,7 +4,6 @@ import com.milvus.vector_spring.common.apipayload.status.ErrorStatus;
 import com.milvus.vector_spring.common.exception.CustomException;
 import com.milvus.vector_spring.invite.dto.*;
 import com.milvus.vector_spring.project.Project;
-import com.milvus.vector_spring.project.ProjectRepository;
 import com.milvus.vector_spring.project.ProjectService;
 import com.milvus.vector_spring.user.User;
 import com.milvus.vector_spring.user.UserService;
@@ -13,9 +12,10 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
+import java.util.stream.Stream;
 
 @Service
 @RequiredArgsConstructor
@@ -23,29 +23,20 @@ import java.util.Objects;
 public class InviteService {
 
     private final InviteRepository inviteRepository;
-    private final ProjectRepository projectRepository;
     private final UserService userService;
     private final ProjectService projectService;
 
     @Transactional(readOnly = true)
     public List<CombinedProjectListResponseDto> invitedProjectAndCreateProjectList(InvitedProjectMyProjectRequestDto dto) {
         User user = userService.findOneUser(dto.getUserId());
-        System.out.println("wow");
-        List<Project> projects = projectRepository.findAllByCreatedBy(user.getId());
 
-        List<Invite> invites = inviteRepository.findAllByReceivedEmailWithProject(user.getEmail());
+        List<CombinedProjectListResponseDto> myProjects = projectService.findMyProjectsAsDto(user.getId());
 
-        List<CombinedProjectListResponseDto> combinedProject = new ArrayList<>();
+        List<CombinedProjectListResponseDto> invitedProjects = inviteRepository.findInvitedProjectsAsDto(user.getEmail());
 
-        projects.forEach(p ->
-                combinedProject.add(CombinedProjectListResponseDto.from(p, true))
-        );
-
-        invites.forEach(i ->
-                combinedProject.add(CombinedProjectListResponseDto.from(i.getProject(), false))
-        );
-
-        return combinedProject;
+        return Stream.concat(myProjects.stream(), invitedProjects.stream())
+                .sorted(Comparator.comparing(CombinedProjectListResponseDto::getCreatedAt).reversed())
+                .toList();
     }
 
     @Transactional
@@ -108,13 +99,7 @@ public class InviteService {
             return null;
         }
 
-        return InvitedProjectUserResponseDto.builder()
-                .projectKey(projectKey)
-                .createdUserId(invitedList.get(0).getCreatedBy().getId())
-                .receivedEmail(invitedList.stream()
-                        .map(Invite::getReceivedEmail)
-                        .toList())
-                .build();
+        return InvitedProjectUserResponseDto.from(projectKey, invitedList);
     }
 
     private void validateProjectMaster(User user, Project project) {

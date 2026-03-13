@@ -2,12 +2,7 @@ package com.milvus.vector_spring.user;
 
 import com.milvus.vector_spring.common.apipayload.status.ErrorStatus;
 import com.milvus.vector_spring.common.exception.CustomException;
-import com.milvus.vector_spring.content.ContentRepository;
-import com.milvus.vector_spring.invite.InviteRepository;
 import com.milvus.vector_spring.libraryopenai.dto.Role;
-import com.milvus.vector_spring.project.Project;
-import com.milvus.vector_spring.project.ProjectRepository;
-import com.milvus.vector_spring.user.dto.UserProjectsResponseDto;
 import com.milvus.vector_spring.user.dto.UserSignUpRequestDto;
 import com.milvus.vector_spring.user.dto.UserUpdateRequestDto;
 import lombok.RequiredArgsConstructor;
@@ -22,9 +17,6 @@ import java.util.List;
 public class UserService {
 
     private final UserRepository userRepository;
-    private final InviteRepository inviteRepository;
-    private final ProjectRepository projectRepository;
-    private final ContentRepository contentRepository;
     private final PasswordEncoder passwordEncoder;
 
     public List<User> findAllUser() {
@@ -36,17 +28,11 @@ public class UserService {
                 .orElseThrow(() -> new CustomException(ErrorStatus.NOT_FOUND_USER));
     }
 
-    public UserProjectsResponseDto findOneUserWithProjects(Long id) {
-        User user = userRepository.findOneUserWithProjects(id);
-        List<Project> projects = projectRepository.findAllByCreatedBy(user.getId());
-        return UserProjectsResponseDto.of(user, projects);
-    }
 
     public User findOneUserByEmail(String email) {
         return userRepository.findByEmail(email)
                 .orElseThrow(() -> new CustomException(ErrorStatus.NOT_FOUND_USER));
     }
-
 
     private void duplicateEmailCheck(String email) {
         userRepository.findByEmail(email).ifPresent(user -> {
@@ -79,16 +65,5 @@ public class UserService {
                 userUpdateRequestDto.getPassword()
         );
         return user;
-    }
-
-    @Transactional
-    public void deleteUser(Long userId) {
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new CustomException(ErrorStatus.NOT_FOUND_USER));
-
-        inviteRepository.deleteByUserId(userId);
-        projectRepository.deleteByUserId(userId);
-        contentRepository.deleteByUserId(userId);
-        userRepository.delete(user);
     }
 }

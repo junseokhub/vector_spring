@@ -10,7 +10,7 @@ import org.springframework.data.repository.query.Param;
 import java.util.List;
 import java.util.Optional;
 
-public interface InviteRepository extends JpaRepository<Invite, Long> {
+public interface InviteRepository extends JpaRepository<Invite, Long>, InviteCustomRepository {
 
     Optional<Invite> findByProjectAndReceivedEmail(Project project, String receivedEmail);
 
