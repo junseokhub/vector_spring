@@ -38,7 +38,7 @@ public class UserService {
 
     public UserProjectsResponseDto findOneUserWithProjects(Long id) {
         User user = userRepository.findOneUserWithProjects(id);
-        List<Project> projects = projectRepository.findAllByCreatedBy(user);
+        List<Project> projects = projectRepository.findAllByCreatedBy(user.getId());
         return UserProjectsResponseDto.of(user, projects);
     }
 

@@ -21,4 +21,24 @@ public class ProjectCustomRepositoryImpl implements ProjectCustomRepository {
 
         return Optional.ofNullable(projectResult);
     }
+
+//    @Override
+//    public List<CombinedProjectListResponseDto> findCombinedProjects(User user) {
+//
+//        List<CombinedProjectListResponseDto> myProjects = queryFactory
+//                .select(new QCombinedProjectListResponseDto(project, Expressions.asBoolean(true)))
+//                .from(project)
+//                .where(project.createdBy.eq(user.getId()))
+//                .fetch();
+//
+//        List<CombinedProjectListResponseDto> invitedProjects = queryFactory
+//                .select(new QCombinedProjectListResponseDto(invite.project, Expressions.asBoolean(false)))
+//                .from(invite)
+//                .join(invite.project, project)
+//                .where(invite.receivedEmail.eq(user.getEmail()))
+//                .fetch();
+//
+//        myProjects.addAll(invitedProjects);
+//        return myProjects;
+//    }
 }
