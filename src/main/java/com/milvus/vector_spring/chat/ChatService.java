@@ -6,6 +6,7 @@ import com.milvus.vector_spring.common.exception.CustomException;
 import com.milvus.vector_spring.content.Content;
 import com.milvus.vector_spring.content.ContentService;
 import com.milvus.vector_spring.content.dto.ContentDto;
+import com.milvus.vector_spring.libraryopenai.OpenAiLibraryService;
 import com.milvus.vector_spring.milvus.VectorSearchService;
 import com.milvus.vector_spring.project.Project;
 import com.milvus.vector_spring.project.ProjectService;
@@ -30,6 +31,8 @@ public class ChatService {
     private final ChatCompletionService chatCompletionService;
     private final KafkaTemplate<String, Object> kafkaTemplate;
     private final KafkaProperties kafkaProperties;
+    private final OpenAiLibraryService openAiLibraryService;
+
 
     public ChatResponseDto chat(ChatRequestDto requestDto) {
         try {
@@ -40,7 +43,7 @@ public class ChatService {
             LocalDateTime inputTime = LocalDateTime.now();
 
             // 2. Embedding 생성
-            CreateEmbeddingResponse embedding = vectorSearchService.createEmbedding(
+            CreateEmbeddingResponse embedding = openAiLibraryService.embedding(
                     secretKey, requestDto.getText(), project.getDimensions());
 
             // 3. Vector 검색

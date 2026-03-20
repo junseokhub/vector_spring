@@ -17,13 +17,8 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class VectorSearchServiceImpl implements VectorSearchService {
 
-    private final OpenAiLibraryService openAiLibraryService;
     private final ChatOptionService chatOptionService;
 
-    @Override
-    public CreateEmbeddingResponse createEmbedding(String openAiKey, String text, long dimensions) {
-        return openAiLibraryService.embedding(openAiKey, text, dimensions);
-    }
 
     @Override
     public VectorSearchResponseDto searchVector(CreateEmbeddingResponse embedding, Long projectId) {

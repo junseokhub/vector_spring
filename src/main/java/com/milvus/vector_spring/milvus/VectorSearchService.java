@@ -7,7 +7,6 @@ import com.openai.models.embeddings.CreateEmbeddingResponse;
 import java.util.List;
 
 public interface VectorSearchService {
-    CreateEmbeddingResponse createEmbedding(String openAiKey, String text, long dimensions);
     VectorSearchResponseDto searchVector(CreateEmbeddingResponse embedding, Long projectId);
     List<VectorSearchRankDto> convertToRankList(VectorSearchResponseDto searchResponse);
 }

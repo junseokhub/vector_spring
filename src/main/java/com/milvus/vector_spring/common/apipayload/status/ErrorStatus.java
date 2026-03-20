@@ -49,7 +49,9 @@ public enum ErrorStatus implements BaseCode {
     NOT_FOUND_CONTENT(HttpStatus.NOT_FOUND, "Not Found Content."),
 
     // 409 Conflict
-    MILVUS_COLLECTION_ALREADY_EXISTS(HttpStatus.CONFLICT, "Collection Already Exists.");
+    MILVUS_COLLECTION_ALREADY_EXISTS(HttpStatus.CONFLICT, "Collection Already Exists."),
+
+    CHAT_TIMEOUT_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "Chat Timeout Error."),;
 
 
     private final HttpStatus httpStatus;
