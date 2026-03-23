@@ -51,7 +51,7 @@ public class AuthService {
         );
     }
 
-    public void logout() {
+    public User logout() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication == null || !authentication.isAuthenticated()) {
             throw new CustomException(ErrorStatus.INVALID_ACCESS_TOKEN);
@@ -59,6 +59,7 @@ public class AuthService {
         User user = (User) authentication.getPrincipal();
         String redisKey = "refreshToken:" + user.getEmail();
         redisService.deleteRedis(redisKey);
+        return user;
     }
 
     public UserLoginResponseDto check() {

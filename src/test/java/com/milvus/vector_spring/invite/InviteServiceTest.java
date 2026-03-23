@@ -4,6 +4,7 @@ import com.milvus.vector_spring.common.exception.CustomException;
 import com.milvus.vector_spring.invite.dto.BanishUserRequestDto;
 import com.milvus.vector_spring.invite.dto.InviteUserRequestDto;
 import com.milvus.vector_spring.invite.dto.UpdateMasterUserRequestDto;
+import com.milvus.vector_spring.invite.dto.UpdateMasterUserResponseDto;
 import com.milvus.vector_spring.project.Project;
 import com.milvus.vector_spring.project.ProjectRepository;
 import com.milvus.vector_spring.user.User;
@@ -61,8 +62,8 @@ class InviteServiceTest {
                 .projectKey(project.getKey())
                 .build();
 
-        String result = inviteService.banishUserFromProject(dto);
-        assertThat(result).isEqualTo("Banish User!");
+        Invite result = inviteService.banishUserFromProject(dto);
+        assertThat(result.getCreatedBy().getEmail()).isEqualTo(dto.getBanishedEmail());
     }
 
     @Test
@@ -86,7 +87,8 @@ class InviteServiceTest {
                 .projectKey(project.getKey())
                 .build();
 
-        inviteService.updateMasterUser(dto);
+        UpdateMasterUserResponseDto result = inviteService.updateMasterUser(dto);
+        assertThat(result.afterMasterEmail()).isEqualTo(dto.getChangeMasterUser());
     }
 
     private User saveUser(String email) {

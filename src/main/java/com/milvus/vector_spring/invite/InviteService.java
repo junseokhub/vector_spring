@@ -57,7 +57,7 @@ public class InviteService {
     }
 
     @Transactional
-    public String banishUserFromProject(BanishUserRequestDto dto) {
+    public Invite banishUserFromProject(BanishUserRequestDto dto) {
         User masterUser = userService.findOneUserByEmail(dto.getMasterUserEmail());
         User banishUser = userService.findOneUserByEmail(dto.getBanishedEmail());
         Project project = projectService.findOneProjectByKey(dto.getProjectKey());
@@ -68,11 +68,11 @@ public class InviteService {
                 .orElseThrow(() -> new CustomException(ErrorStatus.NOT_INVITED_USER));
 
         inviteRepository.delete(invite);
-        return "Banish User!";
+        return invite;
     }
 
     @Transactional
-    public void updateMasterUser(UpdateMasterUserRequestDto dto) {
+    public UpdateMasterUserResponseDto updateMasterUser(UpdateMasterUserRequestDto dto) {
         User beforeMaster = userService.findOneUser(dto.getCreatedUserId());
         User afterMaster = userService.findOneUserByEmail(dto.getChangeMasterUser());
         Project project = projectService.findOneProjectByKey(dto.getProjectKey());
@@ -89,6 +89,12 @@ public class InviteService {
         invites.stream()
                 .filter(invite -> !invite.getReceivedEmail().equals(afterMaster.getEmail()))
                 .forEach(invite -> invite.updateCreatedBy(afterMaster));
+        return new UpdateMasterUserResponseDto(
+                project.getKey(),
+                beforeMaster.getEmail(),
+                afterMaster.getEmail()
+        );
+
     }
 
     @Transactional(readOnly = true)

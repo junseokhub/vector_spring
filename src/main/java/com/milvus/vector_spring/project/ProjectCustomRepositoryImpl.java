@@ -6,7 +6,6 @@ import com.querydsl.core.types.dsl.Expressions;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 
 import java.util.List;
-import java.util.Optional;
 
 public class ProjectCustomRepositoryImpl implements ProjectCustomRepository {
     private final JPAQueryFactory queryFactory;
@@ -16,14 +15,13 @@ public class ProjectCustomRepositoryImpl implements ProjectCustomRepository {
     }
 
     @Override
-    public Optional<Project> findOneProjectWithContents(String projectKey) {
+    public Project findOneProjectWithContents(String projectKey) {
         QProject project = QProject.project;
-        Project projectResult = queryFactory
+
+        return queryFactory
                 .selectFrom(project)
                 .where(project.key.eq(projectKey))
                 .fetchOne();
-
-        return Optional.ofNullable(projectResult);
     }
 
     @Override
@@ -33,7 +31,7 @@ public class ProjectCustomRepositoryImpl implements ProjectCustomRepository {
         return queryFactory
                 .select(new QCombinedProjectListResponseDto(
                         project.id,
-                        Expressions.asBoolean(true).as("mine"), // 내 프로젝트이므로 true
+                        Expressions.asBoolean(true).as("mine"),
                         project.name,
                         project.key,
                         project.createdBy.id,

@@ -2,8 +2,9 @@ package com.milvus.vector_spring.auth;
 
 import com.milvus.vector_spring.auth.dto.UserLoginRequestDto;
 import com.milvus.vector_spring.auth.dto.UserLoginResponseDto;
+import com.milvus.vector_spring.user.User;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.ResponseEntity;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
@@ -14,21 +15,20 @@ public class AuthController {
     private final AuthService authService;
 
     @PostMapping("/login")
-    public ResponseEntity<UserLoginResponseDto> login(@RequestBody UserLoginRequestDto userLoginRequestDto) {
-        UserLoginResponseDto userLoginResponseDto = authService.login(userLoginRequestDto);
-        return ResponseEntity.ok(userLoginResponseDto);
+    @ResponseStatus(HttpStatus.CREATED)
+    public UserLoginResponseDto login(@RequestBody UserLoginRequestDto userLoginRequestDto) {
+        return authService.login(userLoginRequestDto);
     }
 
     @GetMapping("/logout")
-    public ResponseEntity<String> logout() {
-        authService.logout();
-        return ResponseEntity.ok("로그아웃 완료!");
+    public String logout() {
+        User user = authService.logout();
+        return "로그아웃 완료!" + user.getEmail();
     }
 
     @GetMapping("/check")
-    public ResponseEntity<UserLoginResponseDto> check() {
-        UserLoginResponseDto userCheck = authService.check();
-        return ResponseEntity.ok(userCheck);
+    public UserLoginResponseDto check() {
+        return authService.check();
     }
 
     @GetMapping("/admin")
