@@ -4,6 +4,8 @@ import com.milvus.vector_spring.content.Content;
 import lombok.Getter;
 
 import java.time.LocalDateTime;
+import java.util.List;
+import java.util.stream.Collectors;
 
 @Getter
 public class ContentResponseDto {
@@ -43,5 +45,11 @@ public class ContentResponseDto {
                 content.getCreatedAt(),
                 content.getUpdatedAt()
         );
+    }
+
+    public static List<ContentResponseDto> from(List<Content> contents) {
+        return contents.stream()
+                .map(ContentResponseDto::from)
+                .collect(Collectors.toList());
     }
 }

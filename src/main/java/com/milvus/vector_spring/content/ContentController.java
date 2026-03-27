@@ -29,6 +29,12 @@ public class ContentController {
                 .toList();
     }
 
+    @GetMapping("/list")
+    @ResponseStatus(HttpStatus.OK)
+    public List<ContentResponseDto> findAllContent(@RequestParam("projectKey") String projectKey) {
+        return ContentResponseDto.from(contentService.findAllContentByProject(projectKey));
+    }
+
     @GetMapping("/{id}")
     @ResponseStatus(HttpStatus.OK)
     public ContentResponseDto findOneContentById(@PathVariable Long id) {
@@ -48,7 +54,7 @@ public class ContentController {
     public ContentResponseDto createContenrt(
             @RequestHeader(USER_ID) long userId,
             @Validated @RequestBody ContentCreateRequestDto contentCreateRequestDto
-            ) {
+    ) {
         Content content = contentService.createContent(userId, contentCreateRequestDto);
         return ContentResponseDto.from(content);
     }
@@ -58,7 +64,7 @@ public class ContentController {
     public ContentResponseDto updateContent(
             @RequestHeader(CONTENT_ID) long id,
             @Validated @RequestBody ContentUpdateRequestDto contentUpdateRequestDto
-            ) {
+    ) {
         Content content = contentService.updateContent(id, contentUpdateRequestDto);
         return ContentResponseDto.from(content);
     }

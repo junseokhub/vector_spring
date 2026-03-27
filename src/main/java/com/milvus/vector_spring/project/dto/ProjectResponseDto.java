@@ -16,6 +16,7 @@ public class ProjectResponseDto {
     private final String prompt;
     private final String embedModel;
     private final String chatModel;
+    private final String openAiKey;
     private final long dimensions;
     private final Long createdUserId;
     private final Long updatedUserId;
@@ -30,6 +31,7 @@ public class ProjectResponseDto {
                 project.getPrompt(),
                 project.getEmbedModel(),
                 project.getChatModel(),
+                project.getOpenAiKey(),
                 project.getDimensions(),
                 project.getCreatedBy().getId(),
                 project.getUpdatedBy().getId(),

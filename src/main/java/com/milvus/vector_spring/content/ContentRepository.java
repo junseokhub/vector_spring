@@ -16,7 +16,11 @@ public interface ContentRepository extends JpaRepository<Content, Long> {
     @Query("SELECT c FROM Content c WHERE c.key = :key")
     Content findOneContentByKey(@Param("key") String key);
 
-    @Query("SELECT c FROM Content c JOIN FETCH c.project WHERE c.project.key = :projectKey")
+    @Query("SELECT c FROM Content c " +
+            "JOIN FETCH c.project " +
+            "JOIN FETCH c.createdBy " +
+            "JOIN FETCH c.updatedBy " +
+            "WHERE c.project.key = :projectKey")
     List<Content> findByProjectKey(@Param("projectKey") String projectKey);
 
     @Query("SELECT c FROM Content c JOIN FETCH c.project p JOIN FETCH c.createdBy u WHERE c.id = :id")
