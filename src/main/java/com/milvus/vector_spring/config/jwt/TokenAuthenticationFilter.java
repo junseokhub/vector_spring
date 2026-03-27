@@ -66,9 +66,10 @@ public class TokenAuthenticationFilter extends OncePerRequestFilter {
         }
     }
 
+    private static final String BEARER_PREFIX = "Bearer ";
     private String getAccessToken(String authorizationHeader) {
-        if (authorizationHeader != null && authorizationHeader.startsWith("Bearer")) {
-            return authorizationHeader.replace("Bearer", "").trim();
+        if (authorizationHeader != null && authorizationHeader.startsWith(BEARER_PREFIX)) {
+            return authorizationHeader.substring(BEARER_PREFIX.length());
         }
         return null;
     }

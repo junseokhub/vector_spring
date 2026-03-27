@@ -8,7 +8,6 @@ import com.milvus.vector_spring.common.service.RedisService;
 import com.milvus.vector_spring.config.jwt.JwtTokenProvider;
 import com.milvus.vector_spring.user.User;
 import com.milvus.vector_spring.user.UserDetailServiceImpl;
-import com.milvus.vector_spring.user.UserRepository;
 import com.milvus.vector_spring.user.UserService;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
@@ -23,8 +22,6 @@ import java.time.LocalDateTime;
 @RequiredArgsConstructor
 public class AuthService {
 
-    private final UserDetailServiceImpl userDetailServiceImpl;
-    private final UserRepository userRepository;
     private final JwtTokenProvider jwtTokenProvider;
     private final BCryptPasswordEncoder bCryptPasswordEncoder;
     private final RedisService redisService;
@@ -37,7 +34,7 @@ public class AuthService {
             throw new CustomException(ErrorStatus.NOT_PASSWORD_MATCHES);
         };
         user.updateLoginAt(LocalDateTime.now());
-        User savedUser = userRepository.save(user);
+        User savedUser = userService.updateLoginAt(user);
 
         String accessToken = jwtTokenProvider.generateAccessToken(user);
         jwtTokenProvider.generateRefreshToken(user);

@@ -4,23 +4,20 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.milvus.vector_spring.common.apipayload.status.ErrorStatus;
 import com.milvus.vector_spring.common.exception.CustomException;
-import com.milvus.vector_spring.util.properties.MilvusProperties;
 import com.milvus.vector_spring.milvus.dto.InsertRequestDto;
+import com.milvus.vector_spring.util.properties.MilvusProperties;
 import io.milvus.v2.client.MilvusClientV2;
 import io.milvus.v2.common.DataType;
 import io.milvus.v2.common.IndexParam;
-import io.milvus.v2.service.collection.request.AddFieldReq;
-import io.milvus.v2.service.collection.request.CreateCollectionReq;
-import io.milvus.v2.service.collection.request.GetLoadStateReq;
-import io.milvus.v2.service.collection.request.HasCollectionReq;
+import io.milvus.v2.service.collection.request.*;
 import io.milvus.v2.service.rbac.request.CreateUserReq;
-import io.milvus.v2.service.vector.request.DeleteReq;
 import io.milvus.v2.service.vector.request.SearchReq;
 import io.milvus.v2.service.vector.request.UpsertReq;
 import io.milvus.v2.service.vector.request.data.BaseVector;
 import io.milvus.v2.service.vector.request.data.FloatVec;
 import io.milvus.v2.service.vector.response.SearchResp;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -30,6 +27,7 @@ import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class MilvusServiceImpl implements MilvusService {
 
     private final MilvusProperties milvusProperties;
@@ -119,7 +117,7 @@ public class MilvusServiceImpl implements MilvusService {
                 .collectionName(milvusProperties.collectionName() + dbKey)
                 .build();
         Boolean res = client.getLoadState(loadStateReq);
-        System.out.println("Collection load state: " + res);
+        log.info("Collection load state: {}", res);
         return res;
     }
 
@@ -152,11 +150,11 @@ public class MilvusServiceImpl implements MilvusService {
     @Override
     public void deleteCollection(long id) {
         try {
-            DeleteReq deleteReq = DeleteReq.builder()
-                    .collectionName(milvusProperties.collectionName() + id)
-                    .filter("id in [" + id + "]")
+            String collectionName = milvusProperties.collectionName() + id;
+            DropCollectionReq dropCollectionReq = DropCollectionReq.builder()
+                    .collectionName(collectionName)
                     .build();
-            client.delete(deleteReq);
+            client.dropCollection(dropCollectionReq);
         } catch (Exception e) {
             throw new CustomException(ErrorStatus.MILVUS_DELETE_ERROR);
         }

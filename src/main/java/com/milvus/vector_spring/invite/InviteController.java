@@ -21,20 +21,20 @@ public class InviteController {
         return new InviteResponseDto(invite);
     }
 
-    @PostMapping("/list")
-    @ResponseStatus(HttpStatus.CREATED)
-    public List<CombinedProjectListResponseDto> invitedProjectAndCreateProjectList(@Validated @RequestBody InvitedProjectMyProjectRequestDto invitedProjectMyProjectRequestDto) {
-        return inviteService.invitedProjectAndCreateProjectList(invitedProjectMyProjectRequestDto);
+    @GetMapping("/list/my")
+    @ResponseStatus(HttpStatus.OK)
+    public List<CombinedProjectListResponseDto> invitedProjectAndCreateProjectList(@RequestParam("userId") Long userId) {
+        return inviteService.invitedProjectAndCreateProjectList(userId);
     }
 
     @GetMapping("/list")
-    @ResponseStatus(HttpStatus.CREATED)
+    @ResponseStatus(HttpStatus.OK)
     public InvitedProjectUserResponseDto invitedProjectUserList(@RequestParam("key") String projectKey) {
         return inviteService.getInvitedProjectUserList(projectKey);
     }
 
-    @PostMapping("/change/master")
-    @ResponseStatus(HttpStatus.CREATED)
+    @PatchMapping("/change/master")
+    @ResponseStatus(HttpStatus.OK)
     public UpdateMasterUserResponseDto changeMasterUser(@Validated @RequestBody UpdateMasterUserRequestDto updateMasterUserRequestDto) {
         return inviteService.updateMasterUser(updateMasterUserRequestDto);
     }

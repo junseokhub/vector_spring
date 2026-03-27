@@ -63,7 +63,8 @@ class InviteServiceTest {
                 .build();
 
         Invite result = inviteService.banishUserFromProject(dto);
-        assertThat(result.getCreatedBy().getEmail()).isEqualTo(dto.getBanishedEmail());
+        assertThat(result.getCreatedBy().getEmail()).isEqualTo(dto.getMasterUserEmail());
+        assertThat(result.getReceivedEmail()).isEqualTo(dto.getBanishedEmail());
     }
 
     @Test

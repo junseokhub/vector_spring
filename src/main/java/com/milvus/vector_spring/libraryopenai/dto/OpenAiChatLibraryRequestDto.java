@@ -10,7 +10,7 @@ public class OpenAiChatLibraryRequestDto {
     private String openAiKey;
     @NotNull
     private String userMessages;
-    private String systemMesasges;
+    private String systemMessages;
     private String model;
 
 

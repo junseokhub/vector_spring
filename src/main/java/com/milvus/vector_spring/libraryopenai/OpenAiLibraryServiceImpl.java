@@ -1,25 +1,32 @@
 package com.milvus.vector_spring.libraryopenai;
 
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
 import com.milvus.vector_spring.common.apipayload.status.ErrorStatus;
 import com.milvus.vector_spring.common.exception.CustomException;
 import com.milvus.vector_spring.libraryopenai.dto.OpenAiChatLibraryRequestDto;
 import com.openai.client.OpenAIClient;
 import com.openai.client.okhttp.OpenAIOkHttpClient;
-import com.openai.models.ChatModel;
 import com.openai.models.chat.completions.ChatCompletion;
 import com.openai.models.chat.completions.ChatCompletionCreateParams;
 import com.openai.models.embeddings.CreateEmbeddingResponse;
 import com.openai.models.embeddings.EmbeddingCreateParams;
-import com.openai.models.embeddings.EmbeddingModel;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
+import java.util.concurrent.TimeUnit;
+
 @Service
+@Slf4j
 public class OpenAiLibraryServiceImpl implements OpenAiLibraryService {
 
+    private final Cache<String, OpenAIClient> clientCache = Caffeine.newBuilder()
+            .expireAfterAccess(1, TimeUnit.HOURS)
+            .maximumSize(100)
+            .build();
+
     private OpenAIClient connectOpenAI(String openAiKey) {
-        return OpenAIOkHttpClient.builder()
-                .apiKey(openAiKey)
-                .build();
+        return clientCache.get(openAiKey, key -> OpenAIOkHttpClient.builder().apiKey(key).build());
     }
 
     @Override
@@ -29,9 +36,9 @@ public class OpenAiLibraryServiceImpl implements OpenAiLibraryService {
                     .addUserMessage(openAiChatLibraryRequestDto.getUserMessages())
                     .model(openAiChatLibraryRequestDto.getModel());
 
-            if (openAiChatLibraryRequestDto.getSystemMesasges() != null &&
-                    !openAiChatLibraryRequestDto.getSystemMesasges().isBlank()) {
-                builder.addSystemMessage(openAiChatLibraryRequestDto.getSystemMesasges());
+            if (openAiChatLibraryRequestDto.getSystemMessages() != null &&
+                    !openAiChatLibraryRequestDto.getSystemMessages().isBlank()) {
+                builder.addSystemMessage(openAiChatLibraryRequestDto.getSystemMessages());
             }
 
             ChatCompletionCreateParams params = builder.build();
@@ -41,16 +48,16 @@ public class OpenAiLibraryServiceImpl implements OpenAiLibraryService {
                     .completions()
                     .create(params);
         } catch (Exception e) {
-            System.err.println("OpenAI chat 호출 중 오류 발생: " + e.getMessage());
+            log.error("OpenAI chat 호출 중 오류 발생: {}", e.getMessage());
             throw new CustomException(ErrorStatus.OPEN_AI_ERROR);
         }
     }
 
     @Override
-    public CreateEmbeddingResponse embedding(String openAiKey, String input, long dimension) {
+    public CreateEmbeddingResponse embedding(String openAiKey, String input, long dimension, String embedModel) {
         try {
             EmbeddingCreateParams params = EmbeddingCreateParams.builder()
-                    .model(EmbeddingModel.TEXT_EMBEDDING_3_LARGE) // 고정값
+                    .model(embedModel)
                     .dimensions(dimension)
                     .input(input)
                     .build();

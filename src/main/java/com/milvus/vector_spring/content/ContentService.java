@@ -40,7 +40,7 @@ public class ContentService {
                 .orElseThrow(() -> new CustomException(ErrorStatus.NOT_FOUND_CONTENT));
     }
 
-    public Content findOneContentByContnetKey(String contentKey) {
+    public Content findOneContentByContentKey(String contentKey) {
         return contentRepository.findOneContentByKey(contentKey);
     }
 
@@ -77,7 +77,7 @@ public class ContentService {
 
         String embeddingText = content.getTitle() + "\n" + content.getAnswer();
 
-        CreateEmbeddingResponse embedResponseDto = openAiLibraryService.embedding(key, embeddingText, project.getDimensions());
+        CreateEmbeddingResponse embedResponseDto = openAiLibraryService.embedding(key, embeddingText, project.getDimensions(), project.getEmbedModel());
         if (embedResponseDto == null || embedResponseDto.data().isEmpty()) {
             throw new CustomException(ErrorStatus.MILVUS_DATABASE_ERROR);
         }
@@ -96,9 +96,10 @@ public class ContentService {
         Project project = content.getProject();
 
         if (!content.getAnswer().equals(dto.getAnswer())) {
+            content.update(dto.getTitle(), dto.getAnswer(), user);
             String key = encryptionService.decryptData(project.getOpenAiKey());
             String embeddingText = content.getTitle() + "\n" + content.getAnswer();
-            CreateEmbeddingResponse embedResponseDto = openAiLibraryService.embedding(key, embeddingText, project.getDimensions());
+            CreateEmbeddingResponse embedResponseDto = openAiLibraryService.embedding(key, embeddingText, project.getDimensions(), project.getEmbedModel());
             insertIntoMilvus(content, embedResponseDto, project.getId());
         }
 

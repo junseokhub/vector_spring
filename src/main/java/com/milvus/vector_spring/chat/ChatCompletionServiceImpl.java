@@ -36,14 +36,14 @@ public class ChatCompletionServiceImpl implements ChatCompletionService {
         String finalAnswer;
         long totalToken;
         boolean isPromptAnswer;
-
-        if (rankList.isEmpty() || rankList.get(0).getScore() <= 0.5) {
+        boolean isLowConfidence = rankList.isEmpty() || rankList.get(0).getScore() <= 0.5;
+        if (isLowConfidence) {
             try {
                 OpenAiChatLibraryRequestDto dto = OpenAiChatLibraryRequestDto.builder()
                         .model(chatModel)
                         .openAiKey(openAiKey)
                         .userMessages(userText)
-                        .systemMesasges(
+                        .systemMessages(
                                 (prompt == null || prompt.isEmpty())
                                         ? chatOptionService.prompt(userText, rankList.stream().map(VectorSearchRankDto::getAnswer).toList())
                                         : prompt

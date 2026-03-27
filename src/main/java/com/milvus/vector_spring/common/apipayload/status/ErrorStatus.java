@@ -51,7 +51,8 @@ public enum ErrorStatus implements BaseCode {
     // 409 Conflict
     MILVUS_COLLECTION_ALREADY_EXISTS(HttpStatus.CONFLICT, "Collection Already Exists."),
 
-    CHAT_TIMEOUT_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "Chat Timeout Error."),;
+    CHAT_TIMEOUT_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "Chat Timeout Error."),
+    RATE_LIMIT_EXCEEDED(HttpStatus.TOO_MANY_REQUESTS, "Rate limit exceeded.");
 
 
     private final HttpStatus httpStatus;

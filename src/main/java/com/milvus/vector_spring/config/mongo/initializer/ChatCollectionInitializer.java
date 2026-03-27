@@ -2,6 +2,7 @@
 
     import com.mongodb.client.MongoDatabase;
     import com.mongodb.client.model.ValidationOptions;
+    import lombok.extern.slf4j.Slf4j;
     import org.bson.Document;
     import org.springframework.boot.CommandLineRunner;
     import org.springframework.context.annotation.Bean;
@@ -11,6 +12,7 @@
     import java.util.Arrays;
 
     @Configuration
+    @Slf4j
     public class ChatCollectionInitializer {
 
         @Bean
@@ -40,9 +42,9 @@
                     MongoDatabase db = mongoTemplate.getDb();
                     db.createCollection(collectionName, new com.mongodb.client.model.CreateCollectionOptions()
                             .validationOptions(validationOptions));
-                    System.out.println("chat_response 컬렉션이 JSON 스키마와 함께 생성되었습니다.");
+                    log.info("chat_response 컬렉션이 JSON 스키마와 함께 생성되었습니다.");
                 } else {
-                    System.out.println("chat_response 컬렉션이 이미 존재합니다.");
+                    log.info("chat_response 컬렉션이 이미 존재합니다.");
                 }
             };
 //

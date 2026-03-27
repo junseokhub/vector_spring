@@ -27,8 +27,8 @@ public class InviteService {
     private final ProjectService projectService;
 
     @Transactional(readOnly = true)
-    public List<CombinedProjectListResponseDto> invitedProjectAndCreateProjectList(InvitedProjectMyProjectRequestDto dto) {
-        User user = userService.findOneUser(dto.getUserId());
+    public List<CombinedProjectListResponseDto> invitedProjectAndCreateProjectList(Long userId) {
+        User user = userService.findOneUser(userId);
 
         List<CombinedProjectListResponseDto> myProjects = projectService.findMyProjectsAsDto(user.getId());
 

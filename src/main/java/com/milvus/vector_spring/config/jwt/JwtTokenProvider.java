@@ -9,6 +9,7 @@ import io.jsonwebtoken.*;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
@@ -20,6 +21,7 @@ import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class JwtTokenProvider {
 
     private final RedisService redisService;
@@ -63,7 +65,8 @@ public class JwtTokenProvider {
                     jwtProperties.token().refreshExpiration() / 1000
             );
         } catch (Exception e) {
-            System.out.println(e.getMessage());
+            log.error("Redis refreshToken 저장 실패: {}", e.getMessage());
+            throw new CustomException(ErrorStatus.INTERNAL_SERVER_ERROR);
         }
     }
 

@@ -6,7 +6,7 @@ import com.milvus.vector_spring.common.exception.CustomException;
 import com.milvus.vector_spring.config.mongo.document.ChatResponseDocument;
 import com.milvus.vector_spring.project.ProjectService;
 import com.milvus.vector_spring.util.properties.KafkaProperties;
-import com.mongodb.DuplicateKeyException;
+import org.springframework.dao.DuplicateKeyException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.mongodb.core.MongoTemplate;
@@ -47,6 +47,7 @@ public class ChatTaskConsumer {
                 log.info("새로운 채팅 결과 적재 성공: {}", event.getSessionId());
             } catch (DuplicateKeyException e) {
                 log.warn("이미 적재된 데이터입니다(중복 키). 토큰 합산 로직으로 넘어갑니다: {}", event.getSessionId());
+                return;
             }
 
             projectService.plusTotalToken(event.getProjectKey(), event.getTotalToken());

@@ -27,19 +27,19 @@ public class Project extends BaseEntity {
     @Column(name = "project_key", nullable = false, unique = true)
     private String key;
 
-    @Column(name = "open_ai_key", nullable = true, length = 1024)
+    @Column(name = "open_ai_key", length = 1024)
     private String openAiKey;
 
-    @Column(name = "prompt", nullable = true)
+    @Column(name = "prompt")
     private String prompt;
 
-    @Column(name = "chat_model", nullable = true)
+    @Column(name = "chat_model")
     private String chatModel;
 
-    @Column(name = "embed_model", nullable = true)
+    @Column(name = "embed_model")
     private String embedModel;
 
-    @Column(name = "dimensions", nullable = true)
+    @Column(name = "dimensions")
     private long dimensions;
 
     @Column(name = "total_token")

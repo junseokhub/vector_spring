@@ -2,13 +2,10 @@ package com.milvus.vector_spring.chat.dto;
 
 import com.milvus.vector_spring.content.Content;
 import com.milvus.vector_spring.content.dto.ContentDto;
-import io.milvus.v2.service.vector.response.SearchResp;
 import lombok.Getter;
 
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
 
 @Getter
 public class ChatResponseDto {
@@ -42,20 +39,7 @@ public class ChatResponseDto {
             String projectKey, String sessionId,
             String input, String output,
             LocalDateTime inputDateTime, LocalDateTime outputDateTime,
-            SearchResp search, Content content) {
-
-        List<VectorSearchRankDto> rankList = search.getSearchResults().stream()
-                .flatMap(List::stream)
-                .map(result -> {
-                    Map<String, Object> entity = result.getEntity();
-                    return new VectorSearchRankDto(
-                            (String) entity.get("answer"),
-                            (String) entity.get("title"),
-                            result.getScore(),
-                            (Long) result.getId()
-                    );
-                })
-                .collect(Collectors.toList());
+            List<VectorSearchRankDto> rankList, Content content) {
 
         String firstAnswer = rankList.stream()
                 .findFirst()

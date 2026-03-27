@@ -9,5 +9,5 @@ public interface OpenAiLibraryService {
 
     ChatCompletion chat(OpenAiChatLibraryRequestDto openAiChatLibraryRequestDto) throws CustomException;
 
-    CreateEmbeddingResponse embedding(String openAiKey, String input, long dimension) throws CustomException;
+    CreateEmbeddingResponse embedding(String openAiKey, String input, long dimension, String embedModel) throws CustomException;
 }

@@ -10,6 +10,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Service
@@ -28,6 +29,11 @@ public class UserService {
                 .orElseThrow(() -> new CustomException(ErrorStatus.NOT_FOUND_USER));
     }
 
+    @Transactional
+    public User updateLoginAt(User user) {
+        user.updateLoginAt(LocalDateTime.now());
+        return userRepository.save(user);
+    }
 
     public User findOneUserByEmail(String email) {
         return userRepository.findByEmail(email)
@@ -62,7 +68,7 @@ public class UserService {
         user.update(
                 userUpdateRequestDto.getEmail(),
                 userUpdateRequestDto.getUsername(),
-                userUpdateRequestDto.getPassword()
+                user.getPassword()
         );
         return user;
     }

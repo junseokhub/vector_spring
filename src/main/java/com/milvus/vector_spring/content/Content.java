@@ -4,6 +4,7 @@ import com.milvus.vector_spring.common.BaseEntity;
 import com.milvus.vector_spring.project.Project;
 import com.milvus.vector_spring.user.User;
 import jakarta.persistence.*;
+import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -11,7 +12,7 @@ import lombok.NoArgsConstructor;
 import java.time.LocalDateTime;
 
 @Entity
-@NoArgsConstructor
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Getter
 @Table(name = "content")
 public class Content extends BaseEntity {

@@ -14,6 +14,7 @@ import com.milvus.vector_spring.util.properties.KafkaProperties;
 import com.openai.models.embeddings.CreateEmbeddingResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 
@@ -21,7 +22,6 @@ import java.time.LocalDateTime;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
-import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
@@ -32,7 +32,6 @@ public class ChatAsyncService {
 
     private static final long TIMEOUT_SECONDS = 15L;
 
-    private final Executor ioExecutor = Executors.newFixedThreadPool(20);
 
     private final ProjectService projectService;
     private final VectorSearchService vectorSearchService;
@@ -41,6 +40,9 @@ public class ChatAsyncService {
     private final KafkaTemplate<String, Object> kafkaTemplate;
     private final KafkaProperties kafkaProperties;
     private final OpenAiLibraryService openAiLibraryService;
+
+    @Qualifier("ioExecutor")
+    private final Executor ioExecutor;
 
     public CompletableFuture<ChatResponseDto> chatAsync(ChatRequestDto requestDto) {
         Project project = projectService.findOneProjectByKey(requestDto.getProjectKey());
@@ -71,7 +73,7 @@ public class ChatAsyncService {
 
     private EmbeddingContext createEmbeddingStep(String secretKey, ChatRequestDto requestDto, Project project) {
         CreateEmbeddingResponse embedding = openAiLibraryService.embedding(
-                secretKey, requestDto.getText(), project.getDimensions());
+                secretKey, requestDto.getText(), project.getDimensions(), project.getEmbedModel());
         return new EmbeddingContext(embedding);
     }
 
@@ -160,7 +162,7 @@ public class ChatAsyncService {
                 result.getFinalAnswer(),
                 result.getInputDateTime(),
                 result.getOutputDateTime(),
-                result.getSearchResp(),
+                result.getRankList(),
                 result.getContent()
         );
     }

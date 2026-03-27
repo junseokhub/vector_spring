@@ -18,6 +18,7 @@ import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 
 @Service
@@ -44,16 +45,15 @@ public class ChatService {
 
             // 2. Embedding 생성
             CreateEmbeddingResponse embedding = openAiLibraryService.embedding(
-                    secretKey, requestDto.getText(), project.getDimensions());
+                    secretKey, requestDto.getText(), project.getDimensions(), project.getEmbedModel());
 
             // 3. Vector 검색
             VectorSearchResponseDto searchResp = vectorSearchService.searchVector(embedding, project.getId());
+            List<VectorSearchRankDto> rankList = vectorSearchService.convertToRankList(searchResp);
 
-            // 4. 답변 생성
             AnswerGenerationResultDto answer = chatCompletionService.generateAnswerWithDecision(
                     project.getChatModel(), requestDto.getText(), secretKey,
-                    vectorSearchService.convertToRankList(searchResp),
-                    searchResp, project.getPrompt(), embedding);
+                    rankList, searchResp, project.getPrompt(), embedding);
 
             // 5. 답변 여부에 따라 Content 노출
             Content finalContent = Optional.of(answer)
@@ -66,7 +66,7 @@ public class ChatService {
 
             // 6. 결과 객체 생성
             ChatProcessResultDto result = createProcessResult(
-                    requestDto.getSessionId(), inputTime, outputTime, searchResp, finalContent, answer
+                    requestDto.getSessionId(), inputTime, outputTime, searchResp, finalContent, rankList, answer
             );
 
             // 7. [Kafka로 전환]
@@ -106,6 +106,7 @@ public class ChatService {
             LocalDateTime outputTime,
             VectorSearchResponseDto searchResp,
             Content content,
+            List<VectorSearchRankDto> rankList,
             AnswerGenerationResultDto answer
     ) {
 
@@ -115,7 +116,7 @@ public class ChatService {
                 inputTime,
                 outputTime,
                 content,
-                vectorSearchService.convertToRankList(searchResp),
+                rankList,
                 searchResp.getSearch()
         );
     }
@@ -133,7 +134,7 @@ public class ChatService {
                 result.getFinalAnswer(),
                 result.getInputDateTime(),
                 result.getOutputDateTime(),
-                result.getSearchResp(),
+                result.getRankList(),
                 result.getContent()
         );
     }

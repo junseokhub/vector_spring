@@ -11,7 +11,6 @@ import org.springframework.stereotype.Service;
 
 import java.util.Collection;
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -20,13 +19,15 @@ public class ChatOptionService {
     private final MilvusService milvusService;
 
     public String prompt(String text, List<String> data) {
-        return "You are a chatbot designed to understand user questions accurately and provide helpful responses.\n" +
-                "Please follow the steps below in order, but do not include step 1 in your response.\\n\n" +
-                "1. Analyze the user utterance \"" + text + "\"to determine the user's question intent, but do not include this intent in your response.\n" +
-                "2. If there is relevant information in , use it to provide an answer that directly addresses the user's question intent.\n" +
-                "3. If there is no relevant information in , inform the user that there is no related information and ask them to try another question.\n" +
-                "4. You must answer in korean and only user's answer\n" +
-                data;
+        return """
+            You are a chatbot designed to understand user questions accurately and provide helpful responses.
+            Please follow the steps below in order, but do not include step 1 in your response.
+            1. Analyze the user utterance "%s" to determine the user's question intent.
+            2. If there is relevant information, use it to provide an answer.
+            3. If there is no relevant information, inform the user and ask them to try another question.
+            4. You must answer in korean and only user's answer
+            %s
+        """.formatted(text, data);
     }
 
     public OpenAiChatResponseDto openAiChatResponse(String openAiKey, String prompt, String model) {
@@ -56,7 +57,7 @@ public class ChatOptionService {
         List<String> answers = search.getSearchResults().stream()
                 .flatMap(Collection::stream)
                 .map(result -> (String) result.getEntity().get("answer"))
-                .collect(Collectors.toList());
+                .toList();
 
         return new VectorSearchResponseDto(search, id, answers);
     }

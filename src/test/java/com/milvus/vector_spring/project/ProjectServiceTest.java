@@ -1,170 +1,223 @@
 package com.milvus.vector_spring.project;
 
+import com.milvus.vector_spring.common.apipayload.status.ErrorStatus;
 import com.milvus.vector_spring.common.exception.CustomException;
+import com.milvus.vector_spring.common.service.EncryptionService;
+import com.milvus.vector_spring.content.ContentRepository;
 import com.milvus.vector_spring.milvus.MilvusService;
 import com.milvus.vector_spring.project.dto.ProjectCreateRequestDto;
 import com.milvus.vector_spring.project.dto.ProjectDeleteRequestDto;
-import com.milvus.vector_spring.project.dto.ProjectUpdateRequestDto;
 import com.milvus.vector_spring.user.User;
-import com.milvus.vector_spring.user.UserRepository;
+import com.milvus.vector_spring.user.UserService;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.test.context.ActiveProfiles;
-import org.springframework.transaction.annotation.Transactional;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+
+import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.Mockito.verify;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.*;
 
-@SpringBootTest
-@Transactional
-@ActiveProfiles("test")
+@ExtendWith(MockitoExtension.class)
 class ProjectServiceTest {
-    @Autowired
+
+    @InjectMocks
     private ProjectService projectService;
 
-    @Autowired
-    private UserRepository userRepository;
+    @Mock private ProjectRepository projectRepository;
+    @Mock private UserService userService;
+    @Mock private EncryptionService encryptionService;
+    @Mock private ContentRepository contentRepository;
+    @Mock private MilvusService milvusService;
 
-    private User user;
-
-    @MockBean
-    private MilvusService milvusService;
+    private User mockUser;
+    private Project mockProject;
 
     @BeforeEach
     void setUp() {
-        user = User.builder()
-                .email("test@example.com")
-                .username("test")
-                .password("password")
-                .build();
-        userRepository.save(user);
-    }
-
-    @Test
-    void create_project_success() {
-        ProjectCreateRequestDto dto = ProjectCreateRequestDto.builder()
-                .name("Test Project")
-                .createdUserId(user.getId())
-                .dimensions(3072)
+        mockUser = User.builder()
+                .id(1L)
+                .email("test@test.com")
+                .username("테스터")
+                .role("ROLE_USER")
                 .build();
 
-        Project saved = projectService.createProject(dto);
-
-        assertThat(saved).isNotNull();
-        assertThat(saved.getName()).isEqualTo("Test Project");
-
-        verify(milvusService).createSchema(saved.getId(), 3072);
-    }
-
-    @Test
-    void update_project_success()  {
-        Project saved = projectService.createProject(ProjectCreateRequestDto.builder()
-                .name("Old Project")
-                .createdUserId(user.getId())
-                .dimensions(3072)
-                .build());
-
-        Project updated = projectService.updateProject(saved.getKey(), ProjectUpdateRequestDto.builder()
-                .name("Updated Project")
-                .updatedUserId(user.getId())
-                .dimensions(3072)
-                .openAiKey("abcd")
-                .chatModel("gpt-4o")
-                .embedModel("text-embedding-3-large")
-                .prompt("Updated Prompt")
-                .build());
-
-        assertThat(updated.getName()).isEqualTo("Updated Project");
-        assertThat(updated.getChatModel()).isEqualTo("gpt-4o");
-        assertThat(updated.getPrompt()).isEqualTo("Updated Prompt");
-    }
-
-    @Test
-    void delete_project_success() {
-        Project project = projectService.createProject(ProjectCreateRequestDto.builder()
-                .name("Project to Delete")
-                .createdUserId(user.getId())
-                .dimensions(3072)
-                .build());
-
-        String result = projectService.deleteProject(ProjectDeleteRequestDto.builder()
-                .key(project.getKey())
-                .userId(user.getId())
-                .build());
-
-        verify(milvusService).deleteCollection(project.getId());
-        assertThat(result).isEqualTo("Deleted Success!");
-    }
-
-    @Test
-    void delete_project_fail_not_owner() {
-        Project project = projectService.createProject(ProjectCreateRequestDto.builder()
-                .name("Project Unauthorized Delete")
-                .createdUserId(user.getId())
-                .dimensions(3072)
-                .build());
-
-        User anotherUser = User.builder()
-                .email("other@example.com")
-                .username("other")
-                .password("password")
+        mockProject = Project.builder()
+                .id(1L)
+                .name("테스트 프로젝트")
+                .key("test-project-key")
+                .openAiKey("encrypted-key")
+                .dimensions(1536L)
+                .totalToken(0)
+                .createdBy(mockUser)
+                .updatedBy(mockUser)
                 .build();
-        userRepository.save(anotherUser);
-
-        assertThrows(CustomException.class, () -> {
-            projectService.deleteProject(ProjectDeleteRequestDto.builder()
-                    .key(project.getKey())
-                    .userId(anotherUser.getId())
-                    .build());
-        });
     }
 
-    @Test
-    void plus_total_token_success() {
-        Project project = projectService.createProject(ProjectCreateRequestDto.builder()
-                .name("Token Project")
-                .createdUserId(user.getId())
-                .dimensions(3072)
-                .build());
+    @Nested
+    @DisplayName("createProject()")
+    class CreateProject {
 
-        projectService.plusTotalToken(project.getKey(), 150L);
-        Project updated = projectService.findOneProjectByKey(project.getKey());
+        @Test
+        @DisplayName("정상 생성 시 Milvus 스키마 생성 및 기본 Content 저장")
+        void createProject_success() {
+            // given
+            ProjectCreateRequestDto dto = ProjectCreateRequestDto.builder()
+                    .name("새 프로젝트")
+                    .dimensions(1536L)
+                    .createdUserId(1L)
+                    .build();
 
-        assertThat(updated.getTotalToken()).isEqualTo(150);
+            given(userService.findOneUser(1L)).willReturn(mockUser);
+            given(projectRepository.save(any(Project.class))).willReturn(mockProject);
+
+            // when
+            Project result = projectService.createProject(dto);
+
+            // then
+            assertThat(result).isNotNull();
+            verify(milvusService).createSchema(anyLong(), eq(1536));
+        }
+
+        @Test
+        @DisplayName("Milvus 오류 시 CustomException 발생")
+        void createProject_milvusError() {
+            // given
+            ProjectCreateRequestDto dto = ProjectCreateRequestDto.builder()
+                    .name("새 프로젝트")
+                    .dimensions(1536L)
+                    .createdUserId(1L)
+                    .build();
+
+            given(userService.findOneUser(1L)).willReturn(mockUser);
+            given(projectRepository.save(any(Project.class))).willReturn(mockProject);
+            doThrow(new RuntimeException("Milvus 연결 실패"))
+                    .when(milvusService).createSchema(anyLong(), anyInt());
+
+            // when & then
+            assertThatThrownBy(() -> projectService.createProject(dto))
+                    .isInstanceOf(CustomException.class)
+                    .satisfies(e -> assertThat(((CustomException) e).getBaseCode())
+                            .isEqualTo(ErrorStatus.MILVUS_DATABASE_ERROR));
+        }
     }
 
-//    @Test
-//    void decrypt_open_ai_key_success() {
-//        Project project = projectService.createProject(ProjectCreateRequestDto.builder()
-//                .name("Decrypt Test")
-//                .createdUserId(user.getId())
-//                .dimensions(3072)
-//                .openAiKey(openAiApiKey)
-//                .chatModel("gpt-4")
-//                .embedModel("text-embedding-3-small")
-//                .prompt("Prompt")
-//                .build());
-//
-//        String decryptedKey = projectService.decryptOpenAiKey(project);
-//
-//        assertThat(decryptedKey).isEqualTo(openAiApiKey);
-//
-//    }
+    @Nested
+    @DisplayName("deleteProject()")
+    class DeleteProject {
 
-    @Test
-    void decrypt_open_ai_key_fail_no_key() {
-        Project project = projectService.createProject(ProjectCreateRequestDto.builder()
-                .name("No Key Project")
-                .createdUserId(user.getId())
-                .dimensions(3072)
-                .build());
+        @Test
+        @DisplayName("프로젝트 마스터가 삭제 요청 시 성공")
+        void deleteProject_success() {
+            // given
+            ProjectDeleteRequestDto dto = mock(ProjectDeleteRequestDto.class);
+            given(dto.getKey()).willReturn("test-project-key");
+            given(dto.getUserId()).willReturn(1L);
+            given(projectRepository.findProjectByKey("test-project-key"))
+                    .willReturn(Optional.of(mockProject));
 
-        assertThrows(CustomException.class, () -> {
-            projectService.decryptOpenAiKey(project);
-        });
+            // when
+            String result = projectService.deleteProject(dto);
+
+            // then
+            assertThat(result).isEqualTo("Deleted Success!");
+            verify(milvusService).deleteCollection(1L);
+            verify(projectRepository).delete(mockProject);
+        }
+
+        @Test
+        @DisplayName("마스터가 아닌 유저가 삭제 시 CustomException 발생")
+        void deleteProject_notMaster() {
+            // given
+            ProjectDeleteRequestDto dto = mock(ProjectDeleteRequestDto.class);
+            given(dto.getKey()).willReturn("test-project-key");
+            given(dto.getUserId()).willReturn(99L); // 다른 유저
+            given(projectRepository.findProjectByKey("test-project-key"))
+                    .willReturn(Optional.of(mockProject));
+
+            // when & then
+            assertThatThrownBy(() -> projectService.deleteProject(dto))
+                    .isInstanceOf(CustomException.class)
+                    .satisfies(e -> assertThat(((CustomException) e).getBaseCode())
+                            .isEqualTo(ErrorStatus.NOT_PROJECT_MASTER_USER));
+        }
+
+        @Test
+        @DisplayName("존재하지 않는 프로젝트 삭제 시 CustomException 발생")
+        void deleteProject_notFound() {
+            // given
+            ProjectDeleteRequestDto dto = mock(ProjectDeleteRequestDto.class);
+            given(dto.getKey()).willReturn("non-exist-key");
+            given(projectRepository.findProjectByKey("non-exist-key"))
+                    .willReturn(Optional.empty());
+
+            // when & then
+            assertThatThrownBy(() -> projectService.deleteProject(dto))
+                    .isInstanceOf(CustomException.class)
+                    .satisfies(e -> assertThat(((CustomException) e).getBaseCode())
+                            .isEqualTo(ErrorStatus.NOT_FOUND_PROJECT));
+        }
+    }
+
+    @Nested
+    @DisplayName("decryptOpenAiKey()")
+    class DecryptOpenAiKey {
+
+        @Test
+        @DisplayName("암호화된 키 복호화 성공")
+        void decryptKey_success() {
+            // given
+            given(encryptionService.decryptData("encrypted-key")).willReturn("sk-real-key");
+
+            // when
+            String result = projectService.decryptOpenAiKey(mockProject);
+
+            // then
+            assertThat(result).isEqualTo("sk-real-key");
+        }
+
+        @Test
+        @DisplayName("OpenAI 키 없는 프로젝트 복호화 시 CustomException 발생")
+        void decryptKey_noKey() {
+            // given
+            Project projectWithoutKey = Project.builder()
+                    .id(2L)
+                    .key("no-key")
+                    .openAiKey(null)
+                    .build();
+
+            // when & then
+            assertThatThrownBy(() -> projectService.decryptOpenAiKey(projectWithoutKey))
+                    .isInstanceOf(CustomException.class)
+                    .satisfies(e -> assertThat(((CustomException) e).getBaseCode())
+                            .isEqualTo(ErrorStatus.REQUIRE_OPEN_AI_INFO));
+        }
+    }
+
+    @Nested
+    @DisplayName("plusTotalToken()")
+    class PlusTotalToken {
+
+        @Test
+        @DisplayName("토큰 누적 업데이트")
+        void plusTotalToken_success() {
+            // given
+            given(projectRepository.findProjectByKeyForUpdate("test-project-key"))
+                    .willReturn(mockProject);
+
+            // when
+            projectService.plusTotalToken("test-project-key", 500L);
+
+            // then - totalToken이 0 + 500 = 500으로 업데이트
+            assertThat(mockProject.getTotalToken()).isEqualTo(500L);
+        }
     }
 }

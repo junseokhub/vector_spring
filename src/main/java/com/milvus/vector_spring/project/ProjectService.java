@@ -3,11 +3,8 @@ package com.milvus.vector_spring.project;
 import com.milvus.vector_spring.common.apipayload.status.ErrorStatus;
 import com.milvus.vector_spring.common.exception.CustomException;
 import com.milvus.vector_spring.common.service.EncryptionService;
-import com.milvus.vector_spring.content.Content;
-import com.milvus.vector_spring.content.ContentRepository;
 import com.milvus.vector_spring.invite.dto.CombinedProjectListResponseDto;
 import com.milvus.vector_spring.milvus.MilvusService;
-import com.milvus.vector_spring.project.dto.ProjectContentsResponseDto;
 import com.milvus.vector_spring.project.dto.ProjectCreateRequestDto;
 import com.milvus.vector_spring.project.dto.ProjectDeleteRequestDto;
 import com.milvus.vector_spring.project.dto.ProjectUpdateRequestDto;
@@ -30,7 +27,6 @@ public class ProjectService  {
     private final ProjectRepository projectRepository;
     private final UserService userService;
     private final EncryptionService encryptionService;
-    private final ContentRepository contentRepository;
     private final MilvusService milvusService;
 
     public List<Project> findAllProject() {
@@ -66,15 +62,6 @@ public class ProjectService  {
             Project savedProject = projectRepository.save(project);
             milvusService.createSchema(savedProject.getId(), (int) dto.getDimensions());
 
-            Content defaultContent = Content.builder()
-                    .key(UUID.randomUUID().toString())
-                    .title("[Default] 웰컴 메세지")
-                    .answer("안녕하세요.")
-                    .project(savedProject)
-                    .createdBy(user)
-                    .updatedBy(user)
-                    .build();
-            contentRepository.save(defaultContent);
             return savedProject;
         } catch (Exception e) {
             log.error("Create Project Error: {}", e.getMessage());
@@ -84,7 +71,6 @@ public class ProjectService  {
 
     @Transactional
     public Project updateProject(String key, ProjectUpdateRequestDto dto) {
-        log.info("test");
         try {
             User user = userService.findOneUser(dto.getUpdatedUserId());
             Project project = projectRepository.findProjectByKey(key)
@@ -96,14 +82,6 @@ public class ProjectService  {
             log.error("up Project Error: {}", e.getMessage());
             throw new CustomException(ErrorStatus.MILVUS_DATABASE_ERROR, e.getMessage());
         }
-    }
-
-    // Lazy Loading
-    @Transactional(readOnly = true)
-    public ProjectContentsResponseDto getProjectWithContents(String key) {
-        Project project = findOneProjectByKey(key);
-        List<Content> contents = contentRepository.findByProjectKey(project.getKey());
-        return ProjectContentsResponseDto.from(project, contents);
     }
 
     @Transactional

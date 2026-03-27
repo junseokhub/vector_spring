@@ -21,6 +21,7 @@ public class ContentController {
     private final ContentService contentService;
 
     @GetMapping()
+    @ResponseStatus(HttpStatus.OK)
     public List<ContentResponseDto> findAllContent() {
         List<Content> contentList = contentService.findAllContent();
         return contentList.stream()
@@ -29,14 +30,16 @@ public class ContentController {
     }
 
     @GetMapping("/{id}")
+    @ResponseStatus(HttpStatus.OK)
     public ContentResponseDto findOneContentById(@PathVariable Long id) {
         Content content = contentService.findOneContentById(id);
         return ContentResponseDto.from(content);
     }
 
     @GetMapping("/detail/{key}")
+    @ResponseStatus(HttpStatus.OK)
     public ContentResponseDto findOneContentByKey(@PathVariable String key) {
-        Content content = contentService.findOneContentByContnetKey(key);
+        Content content = contentService.findOneContentByContentKey(key);
         return ContentResponseDto.from(content);
     }
 

@@ -1,6 +1,5 @@
 package com.milvus.vector_spring.user;
 
-import com.milvus.vector_spring.common.exception.CustomException;
 import com.milvus.vector_spring.user.dto.UserResponseDto;
 import com.milvus.vector_spring.user.dto.UserSignUpRequestDto;
 import com.milvus.vector_spring.user.dto.UserUpdateRequestDto;
@@ -29,14 +28,14 @@ public class UserController {
 
     @PostMapping("/sign-up")
     @ResponseStatus(HttpStatus.CREATED)
-    public UserResponseDto signUpUser(@Validated @RequestBody UserSignUpRequestDto userSignUpRequestDto) throws CustomException {
+    public UserResponseDto signUpUser(@Validated @RequestBody UserSignUpRequestDto userSignUpRequestDto) {
         User user = userService.signUpUser(userSignUpRequestDto);
         return UserResponseDto.from(user);
     }
 
-    @PostMapping("/update/{id}")
-    @ResponseStatus(HttpStatus.CREATED)
-    public UserResponseDto updateUser(@PathVariable() Long id, @Validated @RequestBody UserUpdateRequestDto userUpdateRequestDto) throws CustomException {
+    @PatchMapping("/update/{id}")
+    @ResponseStatus(HttpStatus.OK)
+    public UserResponseDto updateUser(@PathVariable() Long id, @Validated @RequestBody UserUpdateRequestDto userUpdateRequestDto) {
         User user = userService.updateUser(id, userUpdateRequestDto);
         return UserResponseDto.from(user);
     }

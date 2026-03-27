@@ -13,7 +13,7 @@ public class ChatController {
     private final ChatService chatService;
 
     @PostMapping()
-    @ResponseStatus(HttpStatus.CREATED)
+    @ResponseStatus(HttpStatus.OK)
     public ChatResponseDto search(@RequestBody ChatRequestDto chatRequestDto) {
         return chatService.chat(chatRequestDto);
     }
