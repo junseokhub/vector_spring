@@ -6,15 +6,18 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.concurrent.CompletableFuture;
+
 @RestController
 @RequestMapping("/chat")
 @RequiredArgsConstructor
 public class ChatController {
     private final ChatService chatService;
+    private final ChatAsyncService chatAsyncService;
 
     @PostMapping()
     @ResponseStatus(HttpStatus.OK)
-    public ChatResponseDto search(@RequestBody ChatRequestDto chatRequestDto) {
-        return chatService.chat(chatRequestDto);
+    public CompletableFuture<ChatResponseDto> search(@RequestBody ChatRequestDto chatRequestDto) {
+        return chatAsyncService.chatAsync(chatRequestDto);
     }
 }

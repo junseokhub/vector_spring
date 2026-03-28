@@ -11,6 +11,7 @@ import com.openai.models.chat.completions.ChatCompletion;
 import com.openai.models.completions.CompletionUsage;
 import com.openai.models.embeddings.CreateEmbeddingResponse;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -18,6 +19,7 @@ import java.util.List;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class ChatCompletionServiceImpl implements ChatCompletionService {
 
     private final ChatOptionService chatOptionService;
@@ -59,6 +61,7 @@ public class ChatCompletionServiceImpl implements ChatCompletionService {
                                 .sum();
                 isPromptAnswer = true;
             } catch (Exception e) {
+                log.info("OpenAI Chat API 호출 중 진짜 에러 발생: {}", e.getMessage(), e);
                 throw new CustomException(ErrorStatus.OPEN_AI_ERROR);
             }
         } else {

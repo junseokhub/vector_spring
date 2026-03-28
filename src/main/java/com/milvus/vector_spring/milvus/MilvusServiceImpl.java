@@ -71,7 +71,7 @@ public class MilvusServiceImpl implements MilvusService {
             schema.addField(AddFieldReq.builder()
                     .fieldName("answer")
                     .dataType(DataType.VarChar)
-                    .maxLength(3092)
+                    .maxLength(dimension)
                     .build());
 
             List<IndexParam> indexParamList = createIndex();
