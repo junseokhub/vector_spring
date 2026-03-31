@@ -35,7 +35,7 @@ public class WebSecurityConfig {
         http
                 .authorizeHttpRequests(auth -> auth
                         .dispatcherTypeMatchers(DispatcherType.ASYNC).permitAll()
-                        .requestMatchers("/static/**", "/auth/check", "/auth/login", "/user/sign-up").permitAll()
+                        .requestMatchers("/static/**", "/auth/check", "/auth/login", "/user/sign-up", "/api/embed").permitAll()
                         .anyRequest().authenticated()
                 );
         http.addFilterBefore(tokenAuthenticationFilter(), UsernamePasswordAuthenticationFilter.class);
