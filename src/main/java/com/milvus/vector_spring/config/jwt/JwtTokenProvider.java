@@ -1,30 +1,27 @@
 package com.milvus.vector_spring.config.jwt;
 
-import com.milvus.vector_spring.common.apipayload.status.ErrorStatus;
-import com.milvus.vector_spring.common.exception.CustomException;
-import com.milvus.vector_spring.common.service.RedisService;
-import com.milvus.vector_spring.util.properties.JwtProperties;
 import com.milvus.vector_spring.user.User;
-import io.jsonwebtoken.*;
+import com.milvus.vector_spring.util.properties.JwtProperties;
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.Header;
+import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 
 import javax.crypto.SecretKey;
 import java.time.LocalDateTime;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
-@Slf4j
 public class JwtTokenProvider {
 
-    private final RedisService redisService;
     private final JwtProperties jwtProperties;
 
     private SecretKey getSigningKey() {
@@ -35,12 +32,10 @@ public class JwtTokenProvider {
     public String generateAccessToken(User user) {
         LocalDateTime now = LocalDateTime.now();
         LocalDateTime expiryDate = now.plusSeconds(jwtProperties.token().accessExpiration() / 1000);
-        Header jwtHeader = Jwts.header()
-                .type("JWT")
-                .build();
+        Header jwtHeader = Jwts.header().type("JWT").build();
+
         return Jwts.builder()
-                .header().add(jwtHeader)
-                .and()
+                .header().add(jwtHeader).and()
                 .subject(user.getEmail())
                 .claims(userToMap(user))
                 .issuedAt(java.sql.Timestamp.valueOf(now))
@@ -49,25 +44,20 @@ public class JwtTokenProvider {
                 .compact();
     }
 
-    public void generateRefreshToken(User user) {
+    public String generateRefreshToken(String email) {
         LocalDateTime now = LocalDateTime.now();
         LocalDateTime expiryDate = now.plusSeconds(jwtProperties.token().refreshExpiration() / 1000);
 
-        String refreshToken = Jwts.builder()
+        return Jwts.builder()
+                .claim("email", email)
                 .issuedAt(java.sql.Timestamp.valueOf(now))
                 .expiration(java.sql.Timestamp.valueOf(expiryDate))
                 .signWith(this.getSigningKey())
                 .compact();
-        try {
-            redisService.setRedis(
-                    "refreshToken:" + user.getEmail(),
-                    refreshToken,
-                    jwtProperties.token().refreshExpiration() / 1000
-            );
-        } catch (Exception e) {
-            log.error("Redis refreshToken 저장 실패: {}", e.getMessage());
-            throw new CustomException(ErrorStatus.INTERNAL_SERVER_ERROR);
-        }
+    }
+
+    public long getRefreshTokenTtlSeconds() {
+        return jwtProperties.token().refreshExpiration() / 1000;
     }
 
     public boolean validateToken(String token) {
@@ -83,35 +73,14 @@ public class JwtTokenProvider {
         }
     }
 
-    public boolean validateRefreshToken(User user) {
-        String token = redisService.getRedis(
-                "refreshToken:" + user.getEmail()
-        );
-        try {
-            Jwts.parser()
-                    .verifyWith(this.getSigningKey())
-                    .build()
-                    .parseSignedClaims(token)
-                    .getPayload();
-            return true;
-        } catch (Exception e) {
-            return false;
-        }
-    }
-
     public Authentication getAuthentication(String token) {
         Claims claims = getClaims(token);
 
-        String email = claims.get("email", String.class);
-        String userName = claims.get("userName", String.class);
-        String role = claims.get("role", String.class);
-        Long userId = claims.get("userId", Long.class);
-
         User principal = User.builder()
-                .id(userId)
-                .username(userName)
-                .email(email)
-                .role(role)
+                .id(claims.get("userId", Long.class))
+                .username(claims.get("userName", String.class))
+                .email(claims.get("email", String.class))
+                .role(claims.get("role", String.class))
                 .build();
 
         return new UsernamePasswordAuthenticationToken(principal, "", principal.getAuthorities());
@@ -125,33 +94,21 @@ public class JwtTokenProvider {
                 .getPayload();
     }
 
-    public Claims expiredTokenGetPayload(String token) {
+    public long getRemainingExpiryMillis(String token) {
         try {
-            return Jwts.parser()
-                    .verifyWith(this.getSigningKey())
-                    .build()
-                    .parseSignedClaims(token)
-                    .getPayload();
-        } catch (ExpiredJwtException e) {
-            return e.getClaims();
-        } catch (JwtException e) {
-            throw new CustomException(ErrorStatus.INVALID_ACCESS_TOKEN);
+            Date expiry = getClaims(token).getExpiration();
+            return expiry.getTime() - System.currentTimeMillis();
+        } catch (Exception e) {
+            return 0;
         }
     }
 
-    public Long getUserId(String token) {
-        Claims claims = getClaims(token);
-        return claims.get("userId", Long.class);
-    }
-
     private Map<String, Object> userToMap(User user) {
-        Map<String, Object> userMap = new HashMap<>();
-
-        userMap.put("userId", user.getId());
-        userMap.put("email", user.getEmail());
-        userMap.put("userName", user.getUsername());
-        userMap.put("role", user.getRole());
-
-        return userMap;
+        Map<String, Object> map = new HashMap<>();
+        map.put("userId", user.getId());
+        map.put("email", user.getEmail());
+        map.put("userName", user.getUsername());
+        map.put("role", user.getRole());
+        return map;
     }
 }

@@ -1,93 +1,141 @@
 package com.milvus.vector_spring.auth;
 
+import com.milvus.vector_spring.auth.dto.AuthTokenDto;
 import com.milvus.vector_spring.auth.dto.UserLoginRequestDto;
 import com.milvus.vector_spring.auth.dto.UserLoginResponseDto;
 import com.milvus.vector_spring.common.apipayload.status.ErrorStatus;
 import com.milvus.vector_spring.common.exception.CustomException;
-import com.milvus.vector_spring.common.service.RedisService;
 import com.milvus.vector_spring.config.jwt.JwtTokenProvider;
 import com.milvus.vector_spring.user.User;
-import com.milvus.vector_spring.user.UserDetailServiceImpl;
 import com.milvus.vector_spring.user.UserService;
-import jakarta.servlet.http.HttpServletRequest;
+import io.jsonwebtoken.Claims;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.util.concurrent.TimeUnit;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class AuthService {
 
+    private static final String REFRESH_TOKEN_PREFIX = "refreshToken:";
+
     private final JwtTokenProvider jwtTokenProvider;
     private final BCryptPasswordEncoder bCryptPasswordEncoder;
-    private final RedisService redisService;
+    private final RedisTemplate<String, String> redisTemplate;
     private final UserService userService;
-    private final HttpServletRequest request;
 
-    public UserLoginResponseDto login(UserLoginRequestDto userLoginRequestDto) {
-        User user = userService.findOneUserByEmail(userLoginRequestDto.getEmail());
-        if (!bCryptPasswordEncoder.matches(userLoginRequestDto.getPassword(), user.getPassword())) {
+    public AuthTokenDto login(UserLoginRequestDto dto) {
+        User user = userService.findOneUserByEmail(dto.getEmail());
+
+        if (!bCryptPasswordEncoder.matches(dto.getPassword(), user.getPassword())) {
             throw new CustomException(ErrorStatus.NOT_PASSWORD_MATCHES);
-        };
+        }
+
         user.updateLoginAt(LocalDateTime.now());
         User savedUser = userService.updateLoginAt(user);
 
-        String accessToken = jwtTokenProvider.generateAccessToken(user);
-        jwtTokenProvider.generateRefreshToken(user);
-        return new UserLoginResponseDto(
-                savedUser.getId(),
-                savedUser.getEmail(),
-                savedUser.getUsername(),
-                savedUser.getRole(),
-                accessToken,
-                savedUser.getLoginAt()
+        String accessToken = jwtTokenProvider.generateAccessToken(savedUser);
+        String refreshToken = saveRefreshToken(savedUser.getEmail());
+
+        return new AuthTokenDto(
+                new UserLoginResponseDto(
+                        savedUser.getId(),
+                        savedUser.getEmail(),
+                        savedUser.getUsername(),
+                        savedUser.getRole(),
+                        accessToken,
+                        savedUser.getLoginAt()
+                ),
+                refreshToken
         );
     }
 
-    public User logout() {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication == null || !authentication.isAuthenticated()) {
-            throw new CustomException(ErrorStatus.INVALID_ACCESS_TOKEN);
+    public AuthTokenDto reissue(String refreshToken) {
+        if (refreshToken == null) {
+            throw new CustomException(ErrorStatus.EXPIRED_REFRESH_TOKEN);
         }
-        User user = (User) authentication.getPrincipal();
-        String redisKey = "refreshToken:" + user.getEmail();
-        redisService.deleteRedis(redisKey);
+
+        // Refresh Token 서명 및 만료 검증
+        if (!jwtTokenProvider.validateToken(refreshToken)) {
+            throw new CustomException(ErrorStatus.EXPIRED_REFRESH_TOKEN);
+        }
+
+        // Refresh Token에서 email 추출
+        Claims claims = jwtTokenProvider.getClaims(refreshToken);
+        String email = claims.get("email", String.class);
+
+        // Redis 저장값과 비교
+        String storedToken = redisTemplate.opsForValue().get(REFRESH_TOKEN_PREFIX + email);
+        if (storedToken == null || !storedToken.equals(refreshToken)) {
+            redisTemplate.delete(REFRESH_TOKEN_PREFIX + email);
+            throw new CustomException(ErrorStatus.EXPIRED_REFRESH_TOKEN);
+        }
+
+        User user = userService.findOneUserByEmail(email);
+        String newAccessToken = jwtTokenProvider.generateAccessToken(user);
+        String newRefreshToken = saveRefreshToken(email); // Rotation
+
+        return new AuthTokenDto(
+                new UserLoginResponseDto(
+                        user.getId(),
+                        user.getEmail(),
+                        user.getUsername(),
+                        user.getRole(),
+                        newAccessToken,
+                        user.getLoginAt()
+                ),
+                newRefreshToken
+        );
+    }
+
+    public User logout(String accessToken) {
+        User user = getAuthenticatedUser();
+        redisTemplate.delete(REFRESH_TOKEN_PREFIX + user.getEmail());
         return user;
     }
 
-    public UserLoginResponseDto check() {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-
-        if (authentication == null || !authentication.isAuthenticated()) {
-            throw new CustomException(ErrorStatus.INVALID_ACCESS_TOKEN);
-        }
-
-        User user = (User) authentication.getPrincipal();
-        String currentToken = getToken();
+    public UserLoginResponseDto check(String accessToken) {
+        User user = getAuthenticatedUser();
 
         return new UserLoginResponseDto(
                 user.getId(),
                 user.getEmail(),
                 user.getUsername(),
                 user.getRole(),
-                currentToken,
+                accessToken,
                 user.getLoginAt()
         );
     }
 
-    private String getToken() {
-        String newToken = (String) request.getAttribute("New-Access-Token");
-        if (newToken != null) {
-            return newToken;
+    private String saveRefreshToken(String email) {
+        String refreshToken = jwtTokenProvider.generateRefreshToken(email);
+        try {
+            redisTemplate.opsForValue().set(
+                    REFRESH_TOKEN_PREFIX + email,
+                    refreshToken,
+                    jwtTokenProvider.getRefreshTokenTtlSeconds(),
+                    TimeUnit.SECONDS
+            );
+        } catch (Exception e) {
+            log.error("Redis refreshToken 저장 실패: {}", e.getMessage());
+            throw new CustomException(ErrorStatus.INTERNAL_SERVER_ERROR);
         }
-        String token = request.getHeader("Authorization");
-        if (token != null && token.startsWith("Bearer ")) {
-            return token.substring(7).trim();
+        return refreshToken;
+    }
+
+    private User getAuthenticatedUser() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || !authentication.isAuthenticated()) {
+            throw new CustomException(ErrorStatus.INVALID_ACCESS_TOKEN);
         }
-        throw new CustomException(ErrorStatus.INVALID_ACCESS_TOKEN);
+        return (User) authentication.getPrincipal();
     }
 }

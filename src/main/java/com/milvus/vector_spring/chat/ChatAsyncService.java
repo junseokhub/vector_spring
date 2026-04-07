@@ -71,6 +71,7 @@ public class ChatAsyncService {
                 )
                 .orTimeout(TIMEOUT_SECONDS, TimeUnit.SECONDS)
                 .exceptionally(this::handleException);
+
     }
 
     // ── Step 1. 임베딩 (캐시 우선) ────────────────────────────────────────────

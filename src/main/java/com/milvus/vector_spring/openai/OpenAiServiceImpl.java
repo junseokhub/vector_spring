@@ -4,11 +4,12 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.milvus.vector_spring.common.apipayload.status.ErrorStatus;
 import com.milvus.vector_spring.common.exception.CustomException;
 import com.milvus.vector_spring.config.WebClientConfig;
-import com.milvus.vector_spring.util.properties.OpenAiProperties;
 import com.milvus.vector_spring.openai.dto.*;
+import com.milvus.vector_spring.util.properties.OpenAiProperties;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
+import reactor.core.publisher.Mono;
 
 import java.util.List;
 import java.util.Map;
@@ -30,46 +31,53 @@ public class OpenAiServiceImpl implements OpenAiService {
     }
 
     @Override
-    public OpenAiChatResponseDto chat(String openAiKey, OpenAiChatRequestDto openAiChatRequestDto) throws CustomException {
+    public Mono<OpenAiChatResponseDto> chat(String openAiKey,
+                                            OpenAiChatRequestDto openAiChatRequestDto) {
         Map<String, Object> requestBody = Map.of(
                 "model", openAiChatRequestDto.getModel(),
                 "messages", openAiChatRequestDto.getMessages()
         );
 
-        try {
-            String res = connect(openAiProperties.url(), openAiKey).post()
-                    .bodyValue(requestBody)
-                    .retrieve()
-                    .bodyToMono(String.class)
-                    .block();
-
-            return objectMapper.readValue(res, OpenAiChatResponseDto.class);
-        } catch (Exception e) {
-            throw new CustomException(ErrorStatus.OPEN_AI_ERROR);
-        }
+        return connect(openAiProperties.url(), openAiKey).post()
+                .bodyValue(requestBody)
+                .retrieve()
+                .bodyToMono(String.class)
+                .<OpenAiChatResponseDto>handle((json, sink) -> {
+                    try {
+                        sink.next(objectMapper.readValue(json, OpenAiChatResponseDto.class));
+                    } catch (Exception e) {
+                        sink.error(new CustomException(ErrorStatus.OPEN_AI_ERROR));
+                    }
+                })
+                .onErrorMap(e -> !(e instanceof CustomException),
+                        e -> new CustomException(ErrorStatus.OPEN_AI_ERROR));
     }
 
     @Override
-    public OpenAiEmbedResponseDto embedding(String openAiKey, EmbedRequestDto embedRequestDto) throws CustomException {
+    public Mono<OpenAiEmbedResponseDto> embedding(String openAiKey, EmbedRequestDto embedRequestDto) {
         Map<String, Object> requestBody = Map.of(
                 "model", embedRequestDto.getEmbedModel(),
                 "dimension", embedRequestDto.getDimension(),
                 "input", embedRequestDto.getEmbedText()
         );
-        try {
-            String res = connect(openAiProperties.embedUrl(), openAiKey).post()
-                    .bodyValue(requestBody)
-                    .retrieve()
-                    .bodyToMono(String.class)
-                    .block();
-            return objectMapper.readValue(res, OpenAiEmbedResponseDto.class);
-        } catch (Exception e) {
-            throw new CustomException(ErrorStatus.OPEN_AI_ERROR);
-        }
+
+        return connect(openAiProperties.embedUrl(), openAiKey).post()
+                .bodyValue(requestBody)
+                .retrieve()
+                .bodyToMono(String.class)
+                .<OpenAiEmbedResponseDto>handle((json, sink) -> {
+                    try {
+                        sink.next(objectMapper.readValue(json, OpenAiEmbedResponseDto.class));
+                    } catch (Exception e) {
+                        sink.error(new CustomException(ErrorStatus.OPEN_AI_ERROR));
+                    }
+                })
+                .onErrorMap(e -> !(e instanceof CustomException),
+                        e -> new CustomException(ErrorStatus.OPEN_AI_ERROR));
     }
 
     @Override
-    public OpenAiZodResponseDto zod(String openAiKey, OpenAiChatRequestDto openAiChatRequestDto) throws CustomException {
+    public Mono<OpenAiZodResponseDto> zod(String openAiKey, OpenAiChatRequestDto openAiChatRequestDto) {
         Map<String, Object> responseFormat = Map.of(
                 "type", "json_schema",
                 "json_schema", Map.of(
@@ -100,15 +108,18 @@ public class OpenAiServiceImpl implements OpenAiService {
                 "response_format", responseFormat
         );
 
-        try {
-            String res = connect(openAiProperties.url(), openAiKey).post()
-                    .bodyValue(requestBody)
-                    .retrieve()
-                    .bodyToMono(String.class)
-                    .block();
-            return objectMapper.readValue(res, OpenAiZodResponseDto.class);
-        } catch (Exception e) {
-            throw new CustomException(ErrorStatus.OPEN_AI_ERROR);
-        }
+        return connect(openAiProperties.url(), openAiKey).post()
+                .bodyValue(requestBody)
+                .retrieve()
+                .bodyToMono(String.class)
+                .<OpenAiZodResponseDto>handle((json, sink) -> {
+                    try {
+                        sink.next(objectMapper.readValue(json, OpenAiZodResponseDto.class));
+                    } catch (Exception e) {
+                        sink.error(new CustomException(ErrorStatus.OPEN_AI_ERROR));
+                    }
+                })
+                .onErrorMap(e -> !(e instanceof CustomException),
+                        e -> new CustomException(ErrorStatus.OPEN_AI_ERROR));
     }
 }

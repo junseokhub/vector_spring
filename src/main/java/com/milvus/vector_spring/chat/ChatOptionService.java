@@ -8,6 +8,7 @@ import com.milvus.vector_spring.openai.dto.OpenAiChatResponseDto;
 import io.milvus.v2.service.vector.response.SearchResp;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import reactor.core.publisher.Mono;
 
 import java.util.Collection;
 import java.util.List;
@@ -30,7 +31,7 @@ public class ChatOptionService {
         """.formatted(text, data);
     }
 
-    public OpenAiChatResponseDto openAiChatResponse(String openAiKey, String prompt, String model) {
+    public Mono<OpenAiChatResponseDto> openAiChatResponse(String openAiKey, String prompt, String model) {
         List<OpenAiChatRequestDto.OpenAiMessageDto> messages = List.of(
                 new OpenAiChatRequestDto.OpenAiMessageDto("system", prompt)
         );
@@ -38,7 +39,7 @@ public class ChatOptionService {
         return openAiService.chat(openAiKey, requestDto);
     }
 
-    public OpenAiChatResponseDto onlyOpenAiAnswer(String openAiKey, String question, String model) {
+    public Mono<OpenAiChatResponseDto> onlyOpenAiAnswer(String openAiKey, String question, String model) {
         List<OpenAiChatRequestDto.OpenAiMessageDto> messages = List.of(
                 new OpenAiChatRequestDto.OpenAiMessageDto("user", question)
         );

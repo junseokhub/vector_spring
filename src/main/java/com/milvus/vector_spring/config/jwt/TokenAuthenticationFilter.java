@@ -1,9 +1,6 @@
 package com.milvus.vector_spring.config.jwt;
 
 import com.milvus.vector_spring.common.apipayload.status.ErrorStatus;
-import com.milvus.vector_spring.common.exception.CustomException;
-import com.milvus.vector_spring.user.User;
-import io.jsonwebtoken.Claims;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -18,58 +15,41 @@ import java.io.IOException;
 
 @RequiredArgsConstructor
 public class TokenAuthenticationFilter extends OncePerRequestFilter {
+
     private final JwtTokenProvider jwtTokenProvider;
-    private final static String HEADER_AUTHORIZATION = "Authorization";
+    private static final String HEADER_AUTHORIZATION = "Authorization";
+    private static final String BEARER_PREFIX = "Bearer ";
 
     @Override
-    protected void doFilterInternal(HttpServletRequest request, @NotNull HttpServletResponse response, @NotNull FilterChain filterChain)
-            throws ServletException, IOException {
+    protected void doFilterInternal(
+            HttpServletRequest request,
+            @NotNull HttpServletResponse response,
+            @NotNull FilterChain filterChain
+    ) throws ServletException, IOException {
 
-        String authorizationHeader = request.getHeader(HEADER_AUTHORIZATION);
-        String token = getAccessToken(authorizationHeader);
+        String token = extractBearerToken(request);
 
         if (token != null) {
             if (jwtTokenProvider.validateToken(token)) {
-                Authentication authentication = jwtTokenProvider.getAuthentication(token);
-                SecurityContextHolder.getContext().setAuthentication(authentication);
+                setAuthentication(token);
             } else {
-                handleExpiredAccessToken(request, response);
+                // 만료 시 401만 반환 — 재발급은 클라이언트가 /auth/reissue로
+                request.setAttribute("exception", ErrorStatus.INVALID_ACCESS_TOKEN);
             }
         }
+
         filterChain.doFilter(request, response);
     }
 
-    private void handleExpiredAccessToken(HttpServletRequest request, HttpServletResponse response) {
-        try {
-            String token = getAccessToken(request.getHeader(HEADER_AUTHORIZATION));
-            Claims claims = jwtTokenProvider.expiredTokenGetPayload(token);
-            User user = User.builder()
-                    .id(claims.get("userId", Long.class))
-                    .email(claims.get("email", String.class))
-                    .role(claims.get("role", String.class))
-                    .build();
-
-            if (!jwtTokenProvider.validateRefreshToken(user)) {
-                throw new CustomException(ErrorStatus.EXPIRED_REFRESH_TOKEN);
-            }
-
-            String newAccessToken = jwtTokenProvider.generateAccessToken(user);
-
-            Authentication authentication = jwtTokenProvider.getAuthentication(newAccessToken);
-            SecurityContextHolder.getContext().setAuthentication(authentication);
-            response.setHeader("New-Access-Token", newAccessToken);
-            request.setAttribute("New-Access-Token", newAccessToken);
-        } catch (CustomException e) {
-            request.setAttribute("exception", e.getBaseCode());
-        } catch (Exception e) {
-            request.setAttribute("exception", ErrorStatus.INVALID_TOKEN);
-        }
+    private void setAuthentication(String token) {
+        Authentication authentication = jwtTokenProvider.getAuthentication(token);
+        SecurityContextHolder.getContext().setAuthentication(authentication);
     }
 
-    private static final String BEARER_PREFIX = "Bearer ";
-    private String getAccessToken(String authorizationHeader) {
-        if (authorizationHeader != null && authorizationHeader.startsWith(BEARER_PREFIX)) {
-            return authorizationHeader.substring(BEARER_PREFIX.length());
+    private String extractBearerToken(HttpServletRequest request) {
+        String header = request.getHeader(HEADER_AUTHORIZATION);
+        if (header != null && header.startsWith(BEARER_PREFIX)) {
+            return header.substring(BEARER_PREFIX.length());
         }
         return null;
     }
