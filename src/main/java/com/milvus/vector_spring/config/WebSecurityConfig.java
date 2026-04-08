@@ -2,6 +2,7 @@ package com.milvus.vector_spring.config;
 
 import com.milvus.vector_spring.config.jwt.JwtTokenProvider;
 import com.milvus.vector_spring.config.jwt.TokenAuthenticationFilter;
+import com.milvus.vector_spring.config.jwt.TokenBlacklistService;
 import jakarta.servlet.DispatcherType;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
@@ -22,6 +23,7 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 public class WebSecurityConfig {
 
     private final JwtTokenProvider jwtTokenProvider;
+    private final TokenBlacklistService tokenBlacklistService;
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
@@ -45,7 +47,7 @@ public class WebSecurityConfig {
 
     @Bean
     public TokenAuthenticationFilter tokenAuthenticationFilter() {
-        return new TokenAuthenticationFilter(jwtTokenProvider);
+        return new TokenAuthenticationFilter(jwtTokenProvider, tokenBlacklistService);
     }
 
     @Bean

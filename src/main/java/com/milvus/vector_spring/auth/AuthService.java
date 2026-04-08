@@ -6,6 +6,7 @@ import com.milvus.vector_spring.auth.dto.UserLoginResponseDto;
 import com.milvus.vector_spring.common.apipayload.status.ErrorStatus;
 import com.milvus.vector_spring.common.exception.CustomException;
 import com.milvus.vector_spring.config.jwt.JwtTokenProvider;
+import com.milvus.vector_spring.config.jwt.TokenBlacklistService;
 import com.milvus.vector_spring.user.User;
 import com.milvus.vector_spring.user.UserService;
 import io.jsonwebtoken.Claims;
@@ -31,6 +32,7 @@ public class AuthService {
     private final BCryptPasswordEncoder bCryptPasswordEncoder;
     private final RedisTemplate<String, String> redisTemplate;
     private final UserService userService;
+    private final TokenBlacklistService tokenBlacklistService;
 
     public AuthTokenDto login(UserLoginRequestDto dto) {
         User user = userService.findOneUserByEmail(dto.getEmail());
@@ -98,6 +100,11 @@ public class AuthService {
 
     public User logout(String accessToken) {
         User user = getAuthenticatedUser();
+
+        // accessToken 블랙리스트 등록
+        long remainingMillis = jwtTokenProvider.getRemainingExpiryMillis(accessToken);
+        tokenBlacklistService.add(accessToken, remainingMillis);
+
         redisTemplate.delete(REFRESH_TOKEN_PREFIX + user.getEmail());
         return user;
     }

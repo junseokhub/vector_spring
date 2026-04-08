@@ -17,6 +17,7 @@ import java.io.IOException;
 public class TokenAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtTokenProvider jwtTokenProvider;
+    private final TokenBlacklistService tokenBlacklistService;
     private static final String HEADER_AUTHORIZATION = "Authorization";
     private static final String BEARER_PREFIX = "Bearer ";
 
@@ -31,12 +32,26 @@ public class TokenAuthenticationFilter extends OncePerRequestFilter {
 
         if (token != null) {
             if (jwtTokenProvider.validateToken(token)) {
-                setAuthentication(token);
+                // 블랙리스트 트레이드오프
+                if (tokenBlacklistService.isBlacklisted(token)) {
+                    request.setAttribute("exception", ErrorStatus.INVALID_ACCESS_TOKEN);
+                } else {
+                    setAuthentication(token);
+                }
             } else {
-                // 만료 시 401만 반환 — 재발급은 클라이언트가 /auth/reissue로
                 request.setAttribute("exception", ErrorStatus.INVALID_ACCESS_TOKEN);
             }
         }
+
+
+//        if (token != null) {
+//            if (jwtTokenProvider.validateToken(token)) {
+//                setAuthentication(token);
+//            } else {
+//                // 만료 시 401만 반환 — 재발급은 클라이언트가 /auth/reissue로
+//                request.setAttribute("exception", ErrorStatus.INVALID_ACCESS_TOKEN);
+//            }
+//        }
 
         filterChain.doFilter(request, response);
     }
