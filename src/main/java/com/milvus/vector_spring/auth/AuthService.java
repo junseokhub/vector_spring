@@ -1,7 +1,6 @@
 package com.milvus.vector_spring.auth;
 
 import com.milvus.vector_spring.auth.dto.AuthTokenDto;
-import com.milvus.vector_spring.auth.dto.UserLoginRequestDto;
 import com.milvus.vector_spring.auth.dto.UserLoginResponseDto;
 import com.milvus.vector_spring.common.apipayload.status.ErrorStatus;
 import com.milvus.vector_spring.common.exception.CustomException;
@@ -34,10 +33,10 @@ public class AuthService {
     private final UserService userService;
     private final TokenBlacklistService tokenBlacklistService;
 
-    public AuthTokenDto login(UserLoginRequestDto dto) {
-        User user = userService.findOneUserByEmail(dto.getEmail());
+    public AuthTokenDto login(String email, String password) {
+        User user = userService.findOneUserByEmail(email);
 
-        if (!bCryptPasswordEncoder.matches(dto.getPassword(), user.getPassword())) {
+        if (!bCryptPasswordEncoder.matches(password, user.getPassword())) {
             throw new CustomException(ErrorStatus.NOT_PASSWORD_MATCHES);
         }
 
@@ -65,16 +64,13 @@ public class AuthService {
             throw new CustomException(ErrorStatus.EXPIRED_REFRESH_TOKEN);
         }
 
-        // Refresh Token 서명 및 만료 검증
         if (!jwtTokenProvider.validateToken(refreshToken)) {
             throw new CustomException(ErrorStatus.EXPIRED_REFRESH_TOKEN);
         }
 
-        // Refresh Token에서 email 추출
         Claims claims = jwtTokenProvider.getClaims(refreshToken);
         String email = claims.get("email", String.class);
 
-        // Redis 저장값과 비교
         String storedToken = redisTemplate.opsForValue().get(REFRESH_TOKEN_PREFIX + email);
         if (storedToken == null || !storedToken.equals(refreshToken)) {
             redisTemplate.delete(REFRESH_TOKEN_PREFIX + email);
@@ -83,7 +79,7 @@ public class AuthService {
 
         User user = userService.findOneUserByEmail(email);
         String newAccessToken = jwtTokenProvider.generateAccessToken(user);
-        String newRefreshToken = saveRefreshToken(email); // Rotation
+        String newRefreshToken = saveRefreshToken(email);
 
         return new AuthTokenDto(
                 new UserLoginResponseDto(
@@ -100,18 +96,14 @@ public class AuthService {
 
     public User logout(String accessToken) {
         User user = getAuthenticatedUser();
-
-        // accessToken 블랙리스트 등록
         long remainingMillis = jwtTokenProvider.getRemainingExpiryMillis(accessToken);
         tokenBlacklistService.add(accessToken, remainingMillis);
-
         redisTemplate.delete(REFRESH_TOKEN_PREFIX + user.getEmail());
         return user;
     }
 
     public UserLoginResponseDto check(String accessToken) {
         User user = getAuthenticatedUser();
-
         return new UserLoginResponseDto(
                 user.getId(),
                 user.getEmail(),

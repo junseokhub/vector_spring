@@ -1,18 +1,17 @@
 package com.milvus.vector_spring.common.apipayload.dto;
 
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
 import org.springframework.http.HttpStatus;
 
-@Builder
-@Getter
-@NoArgsConstructor
-@AllArgsConstructor
-public class ErrorResponseDto {
+public record ErrorResponseDto(
+        String statusCode,
+        String message,
+        HttpStatus httpStatus
+) {
+    public static ErrorResponseDto of(String statusCode, String message, HttpStatus httpStatus) {
+        return new ErrorResponseDto(statusCode, message, httpStatus);
+    }
 
-    private String statusCode;
-    private String message;
-    private HttpStatus httpStatus;
+    public static ErrorResponseDto of(String statusCode, String message) {
+        return new ErrorResponseDto(statusCode, message, null);
+    }
 }

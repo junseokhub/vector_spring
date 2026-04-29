@@ -1,26 +1,24 @@
 package com.milvus.vector_spring.invite.dto;
 
-import com.milvus.vector_spring.invite.Invite;
-import lombok.Getter;
+import com.milvus.vector_spring.invite.ProjectMember;
+
 import java.util.List;
 
-@Getter
-public class InvitedProjectUserResponseDto {
-    private final String projectKey;
-    private final Long createdUserId;
-    private final List<String> receivedEmail;
+public record InvitedProjectUserResponseDto(
+        String projectKey,
+        Long ownerId,
+        List<MemberInfo> members
+) {
+    public record MemberInfo(Long userId, String email) {}
 
-    private InvitedProjectUserResponseDto(String projectKey, Long createdUserId, List<String> receivedEmail) {
-        this.projectKey = projectKey;
-        this.createdUserId = createdUserId;
-        this.receivedEmail = receivedEmail;
-    }
-
-    public static InvitedProjectUserResponseDto from(String projectKey, List<Invite> invitedList) {
-        return new InvitedProjectUserResponseDto(
-                projectKey,
-                invitedList.get(0).getCreatedBy().getId(),
-                invitedList.stream().map(Invite::getReceivedEmail).toList()
-        );
+    public static InvitedProjectUserResponseDto from(String projectKey, List<ProjectMember> members) {
+        Long ownerId = members.get(0).getInvitedBy().getId();
+        List<MemberInfo> memberInfos = members.stream()
+                .map(m -> new MemberInfo(
+                        m.getMember() != null ? m.getMember().getId() : null,
+                        m.getMemberEmail()
+                ))
+                .toList();
+        return new InvitedProjectUserResponseDto(projectKey, ownerId, memberInfos);
     }
 }

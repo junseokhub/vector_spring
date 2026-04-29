@@ -1,6 +1,6 @@
 package com.milvus.vector_spring.config;
 
-import com.milvus.vector_spring.util.properties.MailProperties;
+import com.milvus.vector_spring.config.properties.MailProperties;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;

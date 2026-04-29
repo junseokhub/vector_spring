@@ -7,8 +7,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
-import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
@@ -17,50 +17,43 @@ import java.util.stream.Collectors;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
-    @ExceptionHandler(AccessDeniedException.class)
-    public ResponseEntity<ErrorResponseDto> handleAccessDeniedException(AccessDeniedException e) {
-        return failResponse(HttpStatus.FORBIDDEN, "You do not have access permission.");
-    }
-
     @ExceptionHandler(CustomException.class)
     public ResponseEntity<ErrorResponseDto> handleCustomException(CustomException e) {
         BaseCode errorCode = e.getBaseCode();
         ErrorResponseDto response = errorCode.getReasonHttpStatus();
-        return ResponseEntity.status(response.getHttpStatus()).body(response);
+        return ResponseEntity.status(response.httpStatus()).body(response);
+    }
+
+    @ExceptionHandler(AccessDeniedException.class)
+    public ResponseEntity<ErrorResponseDto> handleAccessDeniedException(AccessDeniedException e) {
+        return errorResponse(HttpStatus.FORBIDDEN, "Access denied.");
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ResponseEntity<ErrorResponseDto> handleBindException(MethodArgumentNotValidException ex) {
-        String errorMessages = ex.getBindingResult().getAllErrors()
-                .stream()
+    public ResponseEntity<ErrorResponseDto> handleValidationException(MethodArgumentNotValidException e) {
+        String message = e.getBindingResult().getAllErrors().stream()
                 .map(DefaultMessageSourceResolvable::getDefaultMessage)
                 .collect(Collectors.joining(", "));
-        return failResponse(HttpStatus.BAD_REQUEST, errorMessages);
+        return errorResponse(HttpStatus.BAD_REQUEST, message);
     }
 
     @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
     public ResponseEntity<ErrorResponseDto> handleMethodNotSupported(HttpRequestMethodNotSupportedException e) {
-        String msg = "HTTP method not supported: " + e.getMethod();
-        return failResponse(HttpStatus.METHOD_NOT_ALLOWED, msg);
+        return errorResponse(HttpStatus.METHOD_NOT_ALLOWED, "HTTP method not supported: " + e.getMethod());
     }
 
     @ExceptionHandler(MissingServletRequestParameterException.class)
     public ResponseEntity<ErrorResponseDto> handleMissingParam(MissingServletRequestParameterException e) {
-        String msg = "Missing required parameter: " + e.getParameterName();
-        return failResponse(HttpStatus.BAD_REQUEST, msg);
+        return errorResponse(HttpStatus.BAD_REQUEST, "Missing required parameter: " + e.getParameterName());
     }
 
     @ExceptionHandler(Exception.class)
-    public ResponseEntity<ErrorResponseDto> handleAllExceptions(Exception ex) {
-        String errorMessage = ex.getMessage() != null ? ex.getMessage() : "An unexpected server error occurred";
-        return failResponse(HttpStatus.INTERNAL_SERVER_ERROR, errorMessage);
+    public ResponseEntity<ErrorResponseDto> handleUnexpected(Exception e) {
+        String message = e.getMessage() != null ? e.getMessage() : "An unexpected error occurred.";
+        return errorResponse(HttpStatus.INTERNAL_SERVER_ERROR, message);
     }
 
-    private ResponseEntity<ErrorResponseDto> failResponse(HttpStatus status, String message) {
-        ErrorResponseDto response = ErrorResponseDto.builder()
-                .statusCode(String.valueOf(status.value()))
-                .message(message)
-                .build();
-        return ResponseEntity.status(status).body(response);
+    private ResponseEntity<ErrorResponseDto> errorResponse(HttpStatus status, String message) {
+        return ResponseEntity.status(status).body(ErrorResponseDto.of(String.valueOf(status.value()), message, status));
     }
 }

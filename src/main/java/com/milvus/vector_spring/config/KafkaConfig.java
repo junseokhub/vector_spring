@@ -1,6 +1,14 @@
 package com.milvus.vector_spring.config;
 
-import com.milvus.vector_spring.util.properties.KafkaProperties;
+// Kafka is currently disabled. To re-enable:
+// 1. Uncomment this class body
+// 2. Uncomment Kafka dependency in build.gradle.kts (it is already present)
+// 3. Remove spring.autoconfigure.exclude for KafkaAutoConfiguration in application.yml
+// 4. Restore @KafkaListener / @RetryableTopic / @DltHandler in ChatTaskConsumer
+// 5. Restore KafkaTemplate publish in ChatService
+
+/*
+import com.milvus.vector_spring.config.properties.KafkaProperties;
 import lombok.RequiredArgsConstructor;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.producer.ProducerConfig;
@@ -60,4 +68,9 @@ public class KafkaConfig {
         factory.setConcurrency(3);
         return factory;
     }
+}
+*/
+
+public class KafkaConfig {
+    // intentionally empty — Kafka disabled
 }

@@ -13,73 +13,62 @@ import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Date;
 import java.util.List;
-import java.util.stream.Collectors;
 
-@RequiredArgsConstructor
 @Service
+@RequiredArgsConstructor
 public class StatisticsService {
+
     private final MongoTemplate mongoTemplate;
 
-    private static final ZoneId KST_ZONE_ID = ZoneId.of("Asia/Seoul");
-    private static final ZoneId UTC_ZONE_ID = ZoneId.of("UTC");
+    private static final ZoneId KST = ZoneId.of("Asia/Seoul");
+    private static final ZoneId UTC = ZoneId.of("UTC");
+    private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
     public List<MongoChatResponse> findByProjectKey(String projectKey) {
-        Query query = new Query(Criteria.where("projectKey").is(projectKey));
-        return mongoTemplate.find(query, MongoChatResponse.class);
+        return mongoTemplate.find(
+                new Query(Criteria.where("projectKey").is(projectKey)),
+                MongoChatResponse.class
+        );
     }
 
     public List<MongoChatResponse> findByProjectKeyAndSessionId(
-            String projectKey,
-            String sessionId,
-            String startDate,
-            String endDate
+            String projectKey, String sessionId, String startDate, String endDate
     ) {
-        Date startKst = convertKstStringToUtc(startDate);
-        Date endKst = convertKstStringToUtc(endDate);
+        Date start = toUtcDate(startDate);
+        Date end = toUtcDate(endDate);
 
-        Query query = new Query(
-                new Criteria().andOperator(
-                        Criteria.where("projectKey").is(projectKey),
-                        Criteria.where("sessionId").is(sessionId),
-                        Criteria.where("inputDateTime").gte(startKst).lte(endKst)
-                )
-        );
+        Query query = new Query(new Criteria().andOperator(
+                Criteria.where("projectKey").is(projectKey),
+                Criteria.where("sessionId").is(sessionId),
+                Criteria.where("inputDateTime").gte(start).lte(end)
+        ));
 
-        List<MongoChatResponse> results = mongoTemplate.find(query, MongoChatResponse.class);
-
-        return results.stream()
-                .map(this::convertToKst)
-                .collect(Collectors.toList());
+        return mongoTemplate.find(query, MongoChatResponse.class).stream()
+                .map(this::toKst)
+                .toList();
     }
 
     public List<MongoChatResponse> findAllLog() {
         return mongoTemplate.findAll(MongoChatResponse.class);
     }
 
-    private static final DateTimeFormatter FORMATTER =
-            DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
-    private Date convertKstStringToUtc(String dateTimeStr) {
-        LocalDateTime localDateTime = LocalDateTime.parse(dateTimeStr, FORMATTER);
-
-        ZonedDateTime kstZoned = localDateTime.atZone(KST_ZONE_ID);
-        ZonedDateTime utcZoned = kstZoned.withZoneSameInstant(UTC_ZONE_ID);
-
-        return Date.from(utcZoned.toInstant());
+    private Date toUtcDate(String kstDateStr) {
+        LocalDateTime local = LocalDateTime.parse(kstDateStr, DATE_FORMATTER);
+        return Date.from(local.atZone(KST).withZoneSameInstant(UTC).toInstant());
     }
 
-    private Date convertUtcToKst(Date utcDate) {
-        ZonedDateTime utcZonedDateTime = utcDate.toInstant().atZone(UTC_ZONE_ID);
-        ZonedDateTime kstZonedDateTime = utcZonedDateTime.withZoneSameInstant(KST_ZONE_ID);
-        return Date.from(kstZonedDateTime.toInstant());
-    }
-
-    private MongoChatResponse convertToKst(MongoChatResponse response) {
-        if (response.getInputDateTime() != null) {
-            response.setInputDateTime(convertUtcToKst(response.getInputDateTime()));
-        }
-        if (response.getOutputDateTime() != null) {
-            response.setOutputDateTime(convertUtcToKst(response.getOutputDateTime()));
-        }
+    private MongoChatResponse toKst(MongoChatResponse response) {
+        Date kstInput = response.getInputDateTime() != null
+                ? toKstDate(response.getInputDateTime()) : null;
+        Date kstOutput = response.getOutputDateTime() != null
+                ? toKstDate(response.getOutputDateTime()) : null;
+        response.setInputDateTime(kstInput);
+        response.setOutputDateTime(kstOutput);
         return response;
+    }
+
+    private Date toKstDate(Date utcDate) {
+        ZonedDateTime utcZdt = utcDate.toInstant().atZone(UTC);
+        return Date.from(utcZdt.withZoneSameInstant(KST).toInstant());
     }
 }

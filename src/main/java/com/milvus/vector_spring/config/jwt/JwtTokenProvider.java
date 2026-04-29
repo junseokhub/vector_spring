@@ -1,7 +1,7 @@
 package com.milvus.vector_spring.config.jwt;
 
 import com.milvus.vector_spring.user.User;
-import com.milvus.vector_spring.util.properties.JwtProperties;
+import com.milvus.vector_spring.config.properties.JwtProperties;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Header;
 import io.jsonwebtoken.Jwts;

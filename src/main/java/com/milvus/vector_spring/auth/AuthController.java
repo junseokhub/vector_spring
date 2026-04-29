@@ -30,9 +30,9 @@ public class AuthController {
             @RequestBody UserLoginRequestDto userLoginRequestDto,
             HttpServletResponse response
     ) {
-        AuthTokenDto result = authService.login(userLoginRequestDto);
-        addRefreshTokenCookie(response, result.getRefreshToken());
-        return result.getUserInfo();
+        AuthTokenDto result = authService.login(userLoginRequestDto.email(), userLoginRequestDto.password());
+        addRefreshTokenCookie(response, result.refreshToken());
+        return result.userInfo();
     }
 
     @PostMapping("/logout")
@@ -43,13 +43,7 @@ public class AuthController {
         String accessToken = resolveAccessToken(request);
         User user = authService.logout(accessToken);
         deleteRefreshTokenCookie(response);
-        return ResponseEntity.ok("로그아웃 완료: " + user.getEmail());
-    }
-
-    @GetMapping("/check")
-    public UserLoginResponseDto check(HttpServletRequest request) {
-        String accessToken = resolveAccessToken(request);
-        return authService.check(accessToken);
+        return ResponseEntity.ok("Logged out: " + user.getEmail());
     }
 
     @PostMapping("/reissue")
@@ -59,14 +53,14 @@ public class AuthController {
     ) {
         String refreshToken = extractRefreshTokenFromCookie(request);
         AuthTokenDto result = authService.reissue(refreshToken);
-        addRefreshTokenCookie(response, result.getRefreshToken());
-        return ResponseEntity.ok(result.getUserInfo());
+        addRefreshTokenCookie(response, result.refreshToken());
+        return ResponseEntity.ok(result.userInfo());
     }
 
     @GetMapping("/admin")
     @PreAuthorize("hasAnyRole('ADMIN')")
     public String test() {
-        return "넌 어드민";
+        return "Admin access granted.";
     }
 
     private String resolveAccessToken(HttpServletRequest request) {
@@ -82,7 +76,7 @@ public class AuthController {
         cookie.setHttpOnly(true);
         cookie.setPath("/");
         cookie.setMaxAge((int) jwtTokenProvider.getRefreshTokenTtlSeconds());
-        cookie.setSecure(false); // production: true
+        cookie.setSecure(false);
         response.addCookie(cookie);
     }
 

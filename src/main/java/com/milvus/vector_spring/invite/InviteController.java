@@ -12,38 +12,43 @@ import java.util.List;
 @RequestMapping("/invite")
 @RequiredArgsConstructor
 public class InviteController {
-    private final InviteService inviteService;
 
-    @PostMapping()
+    private final ProjectMemberService projectMemberService;
+
+    @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public InviteResponseDto inviteUser(@Validated @RequestBody InviteUserRequestDto inviteUserRequestDto) {
-        Invite invite = inviteService.inviteUser(inviteUserRequestDto);
-        return new InviteResponseDto(invite);
+    public InviteResponseDto inviteUser(@Validated @RequestBody InviteUserRequestDto request) {
+        return InviteResponseDto.from(
+                projectMemberService.addMember(request.inviteId(), request.receiveEmail(), request.projectKey())
+        );
     }
 
     @GetMapping("/list/my")
     @ResponseStatus(HttpStatus.OK)
-    public List<CombinedProjectListResponseDto> invitedProjectAndCreateProjectList(@RequestParam("userId") Long userId) {
-        return inviteService.invitedProjectAndCreateProjectList(userId);
+    public List<CombinedProjectListResponseDto> listMyProjects(@RequestParam("userId") Long userId) {
+        return projectMemberService.listAllAccessibleProjects(userId);
     }
 
     @GetMapping("/list")
     @ResponseStatus(HttpStatus.OK)
-    public InvitedProjectUserResponseDto invitedProjectUserList(@RequestParam("key") String projectKey) {
-        return inviteService.getInvitedProjectUserList(projectKey);
+    public InvitedProjectUserResponseDto listProjectMembers(@RequestParam("key") String projectKey) {
+        return projectMemberService.getProjectMembers(projectKey);
     }
 
     @PatchMapping("/change/master")
     @ResponseStatus(HttpStatus.OK)
-    public UpdateMasterUserResponseDto changeMasterUser(@Validated @RequestBody UpdateMasterUserRequestDto updateMasterUserRequestDto) {
-        return inviteService.updateMasterUser(updateMasterUserRequestDto);
+    public UpdateMasterUserResponseDto transferOwnership(@Validated @RequestBody UpdateMasterUserRequestDto request) {
+        return projectMemberService.transferOwnership(
+                request.createdUserId(), request.changeMasterUser(), request.projectKey()
+        );
     }
 
     @DeleteMapping("/banish")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    public BanishedUserResponseDto banishUser(@Validated @RequestBody BanishUserRequestDto banishUserRequestDto) {
-        Invite invite = inviteService.banishUserFromProject(banishUserRequestDto);
-        return new BanishedUserResponseDto(invite.getReceivedEmail());
-
+    public BanishedUserResponseDto removeMember(@Validated @RequestBody BanishUserRequestDto request) {
+        ProjectMember removed = projectMemberService.removeMember(
+                request.masterUserEmail(), request.banishedEmail(), request.projectKey()
+        );
+        return new BanishedUserResponseDto(removed.getMemberEmail());
     }
 }

@@ -16,10 +16,11 @@ import java.io.IOException;
 @RequiredArgsConstructor
 public class TokenAuthenticationFilter extends OncePerRequestFilter {
 
-    private final JwtTokenProvider jwtTokenProvider;
-    private final TokenBlacklistService tokenBlacklistService;
     private static final String HEADER_AUTHORIZATION = "Authorization";
     private static final String BEARER_PREFIX = "Bearer ";
+
+    private final JwtTokenProvider jwtTokenProvider;
+    private final TokenBlacklistService tokenBlacklistService;
 
     @Override
     protected void doFilterInternal(
@@ -27,31 +28,15 @@ public class TokenAuthenticationFilter extends OncePerRequestFilter {
             @NotNull HttpServletResponse response,
             @NotNull FilterChain filterChain
     ) throws ServletException, IOException {
-
         String token = extractBearerToken(request);
 
         if (token != null) {
-            if (jwtTokenProvider.validateToken(token)) {
-                // 블랙리스트 트레이드오프
-                if (tokenBlacklistService.isBlacklisted(token)) {
-                    request.setAttribute("exception", ErrorStatus.INVALID_ACCESS_TOKEN);
-                } else {
-                    setAuthentication(token);
-                }
+            if (jwtTokenProvider.validateToken(token) && !tokenBlacklistService.isBlacklisted(token)) {
+                setAuthentication(token);
             } else {
                 request.setAttribute("exception", ErrorStatus.INVALID_ACCESS_TOKEN);
             }
         }
-
-
-//        if (token != null) {
-//            if (jwtTokenProvider.validateToken(token)) {
-//                setAuthentication(token);
-//            } else {
-//                // 만료 시 401만 반환 — 재발급은 클라이언트가 /auth/reissue로
-//                request.setAttribute("exception", ErrorStatus.INVALID_ACCESS_TOKEN);
-//            }
-//        }
 
         filterChain.doFilter(request, response);
     }

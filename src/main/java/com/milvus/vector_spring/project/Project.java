@@ -1,7 +1,7 @@
 package com.milvus.vector_spring.project;
 
 import com.milvus.vector_spring.common.BaseEntity;
-import com.milvus.vector_spring.project.dto.ProjectUpdateRequestDto;
+import com.milvus.vector_spring.llm.LlmPlatform;
 import com.milvus.vector_spring.user.User;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
@@ -16,6 +16,7 @@ import java.time.LocalDateTime;
 @Getter
 @Table(name = "project")
 public class Project extends BaseEntity {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id", nullable = false)
@@ -28,7 +29,7 @@ public class Project extends BaseEntity {
     private String key;
 
     @Column(name = "open_ai_key", length = 1024)
-    private String openAiKey;
+    private String apiKey;
 
     @Column(name = "prompt")
     private String prompt;
@@ -45,8 +46,9 @@ public class Project extends BaseEntity {
     @Column(name = "total_token")
     private long totalToken;
 
-//    @OneToMany(mappedBy = "project")
-//    private List<Content> contents;
+    @Enumerated(EnumType.STRING)
+    @Column(name = "llm_platform")
+    private LlmPlatform llmPlatform;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "created_user_id", nullable = false)
@@ -57,57 +59,45 @@ public class Project extends BaseEntity {
     private User updatedBy;
 
     @Builder
-    public Project(Long id, String name, String key, String openAiKey, String prompt, String chatModel, String embedModel, long dimensions, long totalToken, LocalDateTime createdAt, LocalDateTime updatedAt, User createdBy, User updatedBy) {
+    public Project(Long id, String name, String key, String apiKey, String prompt,
+                   String chatModel, String embedModel, long dimensions, long totalToken,
+                   LlmPlatform llmPlatform,
+                   LocalDateTime createdAt, LocalDateTime updatedAt, User createdBy, User updatedBy) {
         this.id = id;
         this.name = name;
         this.key = key;
-        this.openAiKey = openAiKey;
+        this.apiKey = apiKey;
         this.prompt = prompt;
         this.chatModel = chatModel;
         this.embedModel = embedModel;
         this.dimensions = dimensions;
         this.totalToken = totalToken;
+        this.llmPlatform = llmPlatform;
         this.createdAt = createdAt;
         this.updatedAt = updatedAt;
         this.createdBy = createdBy;
         this.updatedBy = updatedBy;
     }
 
-    public void updateByUser(User updatedUser, User createdUser) {
-        this.updatedBy = updatedUser;
-        this.createdBy = createdUser;
+    public void update(String name, String apiKey, String chatModel, String embedModel,
+                       String prompt, LlmPlatform llmPlatform, User updatedBy) {
+        if (name != null && !name.isBlank()) this.name = name;
+        if (apiKey != null) this.apiKey = apiKey;
+        if (chatModel != null && !chatModel.isBlank()) this.chatModel = chatModel;
+        if (embedModel != null) this.embedModel = embedModel;
+        if (prompt != null) this.prompt = prompt;
+        if (llmPlatform != null) this.llmPlatform = llmPlatform;
+        this.updatedBy = updatedBy;
+        this.updatedAt = LocalDateTime.now();
+    }
+
+    public void transferOwnership(User newOwner) {
+        this.createdBy = newOwner;
+        this.updatedBy = newOwner;
+        this.updatedAt = LocalDateTime.now();
     }
 
     public void updateTotalToken(long totalToken) {
         this.totalToken = totalToken;
-    }
-
-    public void update(
-            ProjectUpdateRequestDto dto,
-            String resolvedOpenAiKey,
-            User updatedBy
-    ) {
-        if (dto.getName() != null && !dto.getName().isEmpty()) {
-            this.name = dto.getName();
-        }
-
-        if (resolvedOpenAiKey != null) {
-            this.openAiKey = resolvedOpenAiKey;
-        }
-
-        if (dto.getChatModel() != null && !dto.getChatModel().isEmpty()) {
-            this.chatModel = dto.getChatModel();
-        }
-
-        if (dto.getEmbedModel() != null) {
-            this.embedModel = dto.getEmbedModel();
-        }
-
-        if (dto.getPrompt() != null) {
-            this.prompt = dto.getPrompt();
-        }
-
-        this.updatedBy = updatedBy;
-        this.updatedAt = LocalDateTime.now();
     }
 }

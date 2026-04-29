@@ -5,9 +5,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.context.properties.ConfigurationPropertiesScan;
 import org.springframework.context.annotation.EnableAspectJAutoProxy;
 
-@SpringBootApplication(exclude = {
-		org.springframework.ai.autoconfigure.openai.OpenAiAutoConfiguration.class
-})
+@SpringBootApplication
 @EnableAspectJAutoProxy
 @ConfigurationPropertiesScan
 public class VectorSpringApplication {
@@ -15,9 +13,4 @@ public class VectorSpringApplication {
 	public static void main(String[] args) {
 		SpringApplication.run(VectorSpringApplication.class, args);
 	}
-
-//	@Bean
-//	public AuditorAware<String> auditorProvider() {
-//		return () -> Optional.of(UUID.randomUUID().toString());
-//	}
 }

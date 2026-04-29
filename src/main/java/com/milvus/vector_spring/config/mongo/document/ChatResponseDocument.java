@@ -28,18 +28,16 @@ public class ChatResponseDocument {
     private LocalDateTime outputDateTime;
     private List<VectorSearchRankDto> rank;
 
-
     public static ChatResponseDocument from(ChatCompleteEvent event) {
         return ChatResponseDocument.builder()
-                .sessionId(event.getSessionId())
-                .projectKey(event.getProjectKey())
-                .input(event.getInput())
-                .output(event.getOutput())
-                .content(event.getContent())
-                .inputDateTime(event.getInputDateTime())
-                .outputDateTime(event.getOutputDateTime())
-                .rank(event.getRankList())
+                .sessionId(event.sessionId())
+                .projectKey(event.projectKey())
+                .input(event.input())
+                .output(event.output())
+                .content(event.content())
+                .rank(event.rankList())
+                .inputDateTime(event.inputDateTime())
+                .outputDateTime(event.outputDateTime())
                 .build();
     }
 }
-

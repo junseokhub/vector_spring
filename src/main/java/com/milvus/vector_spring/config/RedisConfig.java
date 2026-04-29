@@ -1,6 +1,6 @@
 package com.milvus.vector_spring.config;
 
-import com.milvus.vector_spring.util.properties.RedisProperties;
+import com.milvus.vector_spring.config.properties.RedisProperties;
 import io.lettuce.core.ClientOptions;
 import io.lettuce.core.SocketOptions;
 import io.lettuce.core.cluster.ClusterClientOptions;

@@ -23,8 +23,7 @@ public class ContentController {
     @GetMapping()
     @ResponseStatus(HttpStatus.OK)
     public List<ContentResponseDto> findAllContent() {
-        List<Content> contentList = contentService.findAllContent();
-        return contentList.stream()
+        return contentService.findAllContent().stream()
                 .map(ContentResponseDto::from)
                 .toList();
     }
@@ -38,34 +37,34 @@ public class ContentController {
     @GetMapping("/{id}")
     @ResponseStatus(HttpStatus.OK)
     public ContentResponseDto findOneContentById(@PathVariable Long id) {
-        Content content = contentService.findOneContentById(id);
-        return ContentResponseDto.from(content);
+        return ContentResponseDto.from(contentService.findOneContentById(id));
     }
 
     @GetMapping("/detail/{key}")
     @ResponseStatus(HttpStatus.OK)
     public ContentResponseDto findOneContentByKey(@PathVariable String key) {
-        Content content = contentService.findOneContentByContentKey(key);
-        return ContentResponseDto.from(content);
+        return ContentResponseDto.from(contentService.findOneContentByContentKey(key));
     }
 
     @PostMapping("/create")
     @ResponseStatus(HttpStatus.CREATED)
-    public ContentResponseDto createContenrt(
+    public ContentResponseDto createContent(
             @RequestHeader(USER_ID) long userId,
-            @Validated @RequestBody ContentCreateRequestDto contentCreateRequestDto
+            @Validated @RequestBody ContentCreateRequestDto request
     ) {
-        Content content = contentService.createContent(userId, contentCreateRequestDto);
-        return ContentResponseDto.from(content);
+        return ContentResponseDto.from(
+                contentService.create(userId, request.projectKey(), request.title(), request.answer())
+        );
     }
 
     @PostMapping("/update")
     @ResponseStatus(HttpStatus.CREATED)
     public ContentResponseDto updateContent(
             @RequestHeader(CONTENT_ID) long id,
-            @Validated @RequestBody ContentUpdateRequestDto contentUpdateRequestDto
+            @Validated @RequestBody ContentUpdateRequestDto request
     ) {
-        Content content = contentService.updateContent(id, contentUpdateRequestDto);
-        return ContentResponseDto.from(content);
+        return ContentResponseDto.from(
+                contentService.update(id, request.updatedUserId(), request.title(), request.answer())
+        );
     }
 }

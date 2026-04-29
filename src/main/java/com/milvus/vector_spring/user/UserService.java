@@ -2,9 +2,6 @@ package com.milvus.vector_spring.user;
 
 import com.milvus.vector_spring.common.apipayload.status.ErrorStatus;
 import com.milvus.vector_spring.common.exception.CustomException;
-import com.milvus.vector_spring.libraryopenai.dto.Role;
-import com.milvus.vector_spring.user.dto.UserSignUpRequestDto;
-import com.milvus.vector_spring.user.dto.UserUpdateRequestDto;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -47,29 +44,25 @@ public class UserService {
     }
 
     @Transactional
-    public User signUpUser(UserSignUpRequestDto userSignUpRequestDto) {
-        duplicateEmailCheck(userSignUpRequestDto.getEmail());
+    public User signUp(String email, String username, String password) {
+        duplicateEmailCheck(email);
         User user = User.builder()
-                .email(userSignUpRequestDto.getEmail())
-                .username(userSignUpRequestDto.getUsername())
-                .password(passwordEncoder.encode(userSignUpRequestDto.getPassword()))
+                .email(email)
+                .username(username)
+                .password(passwordEncoder.encode(password))
                 .role(Role.USER.getValue())
                 .build();
         return userRepository.save(user);
     }
 
     @Transactional
-    public User updateUser(Long id, UserUpdateRequestDto userUpdateRequestDto) {
+    public User update(Long id, String email, String username) {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new CustomException(ErrorStatus.NOT_FOUND_USER));
-        if (!user.getEmail().equals(userUpdateRequestDto.getEmail())) {
-            duplicateEmailCheck(userUpdateRequestDto.getEmail());
+        if (!user.getEmail().equals(email)) {
+            duplicateEmailCheck(email);
         }
-        user.update(
-                userUpdateRequestDto.getEmail(),
-                userUpdateRequestDto.getUsername(),
-                user.getPassword()
-        );
+        user.update(email, username, user.getPassword());
         return user;
     }
 }

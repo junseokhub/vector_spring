@@ -1,6 +1,6 @@
 package com.milvus.vector_spring.config.mongo;
 
-import com.milvus.vector_spring.util.properties.MongoDBProperties;
+import com.milvus.vector_spring.config.properties.MongoProperties;
 import com.mongodb.ConnectionString;
 import com.mongodb.MongoClientSettings;
 import com.mongodb.client.MongoClient;
@@ -17,13 +17,13 @@ import org.springframework.data.mongodb.core.SimpleMongoClientDatabaseFactory;
 @RequiredArgsConstructor
 public class MongoClientConfig extends AbstractMongoClientConfiguration {
 
-    private final MongoDBProperties mongoDBProperties;
+    private final MongoProperties mongoProperties;
 
     @Bean
     @Override
     @NotNull
     public MongoClient mongoClient() {
-        ConnectionString connectionString = new ConnectionString(mongoDBProperties.uri());
+        ConnectionString connectionString = new ConnectionString(mongoProperties.uri());
         MongoClientSettings mongoClientSettings = MongoClientSettings.builder()
                 .applyConnectionString(connectionString)
                 .build();
@@ -33,7 +33,7 @@ public class MongoClientConfig extends AbstractMongoClientConfiguration {
     @Override
     @NotNull
     protected String getDatabaseName() {
-        return mongoDBProperties.database();
+        return mongoProperties.database();
     }
 
     @Bean

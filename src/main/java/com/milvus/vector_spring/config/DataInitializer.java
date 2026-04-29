@@ -1,6 +1,6 @@
 package com.milvus.vector_spring.config;
 
-import com.milvus.vector_spring.util.properties.CommonProperties;
+import com.milvus.vector_spring.config.properties.AppProperties;
 import com.milvus.vector_spring.user.User;
 import com.milvus.vector_spring.user.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -17,7 +17,7 @@ import java.util.Optional;
 @Slf4j
 public class DataInitializer {
 
-    private final CommonProperties commonProperties;
+    private final AppProperties commonProperties;
 
     @Bean
     public CommandLineRunner initAdmin(UserRepository userRepository, PasswordEncoder passwordEncoder) {

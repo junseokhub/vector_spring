@@ -1,6 +1,6 @@
 package com.milvus.vector_spring.config;
 
-import com.milvus.vector_spring.util.properties.MilvusProperties;
+import com.milvus.vector_spring.config.properties.MilvusProperties;
 import io.milvus.v2.client.ConnectConfig;
 import io.milvus.v2.client.MilvusClientV2;
 import org.springframework.context.annotation.Bean;
@@ -15,7 +15,6 @@ public class MilvusConfig {
                 .token(milvusProperties.token())
                 .build();
 
-        System.out.println("Initializing Milvus Client Bean...");
         return new MilvusClientV2(connectConfig);
     }
 }

@@ -6,8 +6,8 @@ WORKDIR /app
 # Copy necessary files for dependency resolution
 COPY gradlew .
 COPY gradle gradle
-COPY build.gradle .
-COPY settings.gradle .
+COPY build.gradle.kts .
+COPY settings.gradle.kts .
 
 RUN chmod +x ./gradlew
 RUN ./gradlew dependencies

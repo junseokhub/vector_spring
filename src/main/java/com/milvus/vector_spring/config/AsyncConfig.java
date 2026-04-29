@@ -1,24 +1,31 @@
 package com.milvus.vector_spring.config;
 
+import org.apache.coyote.ProtocolHandler;
+import org.springframework.boot.web.embedded.tomcat.TomcatProtocolHandlerCustomizer;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.scheduling.annotation.AsyncConfigurer;
 import org.springframework.scheduling.annotation.EnableAsync;
-import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 
 import java.util.concurrent.Executor;
+import java.util.concurrent.Executors;
 
 @Configuration
 @EnableAsync
-public class AsyncConfig {
-    @Bean(name = "ioExecutor")
-    public Executor ioExecutor() {
-        ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
-        executor.setCorePoolSize(10);
-        executor.setMaxPoolSize(20);
-        executor.setQueueCapacity(100);
-        executor.setThreadNamePrefix("io-");
-        executor.setWaitForTasksToCompleteOnShutdown(true);
-        executor.initialize();
-        return executor;
+public class AsyncConfig implements AsyncConfigurer {
+
+    @Bean
+    public TomcatProtocolHandlerCustomizer<ProtocolHandler> virtualThreadTomcatCustomizer() {
+        return protocolHandler -> protocolHandler.setExecutor(Executors.newVirtualThreadPerTaskExecutor());
+    }
+
+    @Bean(name = "virtualThreadExecutor")
+    public Executor virtualThreadExecutor() {
+        return Executors.newVirtualThreadPerTaskExecutor();
+    }
+
+    @Override
+    public Executor getAsyncExecutor() {
+        return virtualThreadExecutor();
     }
 }

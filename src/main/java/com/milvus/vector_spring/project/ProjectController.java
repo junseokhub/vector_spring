@@ -15,11 +15,10 @@ public class ProjectController {
 
     private final ProjectService projectService;
 
-    @GetMapping()
+    @GetMapping
     @ResponseStatus(HttpStatus.OK)
     public List<ProjectResponseDto> findAllProjects() {
-        List<Project> projects = projectService.findAllProject();
-        return projects.stream()
+        return projectService.findAllProject().stream()
                 .map(ProjectResponseDto::from)
                 .toList();
     }
@@ -27,32 +26,30 @@ public class ProjectController {
     @GetMapping("/{id}")
     @ResponseStatus(HttpStatus.OK)
     public ProjectResponseDto findOneProject(@PathVariable Long id) {
-        Project project = projectService.findOneProject(id);
-        return ProjectResponseDto.from(project);
+        return ProjectResponseDto.from(projectService.findOneProject(id));
     }
 
     @GetMapping("/search")
     @ResponseStatus(HttpStatus.OK)
     public ProjectResponseDto findOneProjectByKey(@RequestParam String key) {
-        Project project = projectService.findOneProjectByKey(key);
-        return ProjectResponseDto.from(project);
+        return ProjectResponseDto.from(projectService.findOneProjectByKey(key));
     }
 
     @PostMapping("/create")
     @ResponseStatus(HttpStatus.CREATED)
-    public ProjectResponseDto createProject(@Validated @RequestBody ProjectCreateRequestDto projectCreateRequestDto) {
-       return ProjectResponseDto.from(projectService.createProject(projectCreateRequestDto));
+    public ProjectResponseDto createProject(@Validated @RequestBody ProjectCreateRequestDto request) {
+        return ProjectResponseDto.from(projectService.create(request.createdUserId(), request.name(), request.dimensions()));
     }
 
     @PostMapping("/update/{key}")
     @ResponseStatus(HttpStatus.OK)
-    public ProjectResponseDto updateProject(@PathVariable String key, @Validated @RequestBody ProjectUpdateRequestDto projectUpdateRequestDto) {
-        return ProjectResponseDto.from(projectService.updateProject(key, projectUpdateRequestDto));
+    public ProjectResponseDto updateProject(@PathVariable String key, @Validated @RequestBody ProjectUpdateRequestDto request) {
+        return ProjectResponseDto.from(projectService.updateProject(key, request));
     }
 
-    @DeleteMapping()
+    @DeleteMapping
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    public String deleteProject(@RequestBody ProjectDeleteRequestDto projectDeleteRequestDto) {
-        return projectService.deleteProject(projectDeleteRequestDto);
+    public void deleteProject(@RequestBody ProjectDeleteRequestDto request) {
+        projectService.delete(request.userId(), request.key());
     }
 }

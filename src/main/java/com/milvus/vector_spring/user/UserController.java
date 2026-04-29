@@ -17,26 +17,22 @@ public class UserController {
 
     private final UserService userService;
 
-
     @GetMapping()
     public List<UserResponseDto> findAllUser() {
-        List<User> users = userService.findAllUser();
-        return users.stream()
+        return userService.findAllUser().stream()
                 .map(UserResponseDto::from)
                 .toList();
     }
 
     @PostMapping("/sign-up")
     @ResponseStatus(HttpStatus.CREATED)
-    public UserResponseDto signUpUser(@Validated @RequestBody UserSignUpRequestDto userSignUpRequestDto) {
-        User user = userService.signUpUser(userSignUpRequestDto);
-        return UserResponseDto.from(user);
+    public UserResponseDto signUpUser(@Validated @RequestBody UserSignUpRequestDto request) {
+        return UserResponseDto.from(userService.signUp(request.email(), request.username(), request.password()));
     }
 
     @PatchMapping("/update/{id}")
     @ResponseStatus(HttpStatus.OK)
-    public UserResponseDto updateUser(@PathVariable() Long id, @Validated @RequestBody UserUpdateRequestDto userUpdateRequestDto) {
-        User user = userService.updateUser(id, userUpdateRequestDto);
-        return UserResponseDto.from(user);
+    public UserResponseDto updateUser(@PathVariable Long id, @Validated @RequestBody UserUpdateRequestDto request) {
+        return UserResponseDto.from(userService.update(id, request.email(), request.username()));
     }
 }

@@ -3,22 +3,27 @@ package com.milvus.vector_spring.chat;
 import com.milvus.vector_spring.chat.dto.*;
 import com.milvus.vector_spring.common.apipayload.status.ErrorStatus;
 import com.milvus.vector_spring.common.exception.CustomException;
-import com.milvus.vector_spring.content.Content;
 import com.milvus.vector_spring.content.ContentService;
 import com.milvus.vector_spring.content.dto.ContentDto;
-import com.milvus.vector_spring.libraryopenai.OpenAiLibraryService;
+import com.milvus.vector_spring.llm.dto.EmbedRequestDto;
+import com.milvus.vector_spring.llm.dto.EmbedResponseDto;
+import com.milvus.vector_spring.llm.provider.LlmProviderRouter;
 import com.milvus.vector_spring.milvus.VectorSearchService;
+import com.milvus.vector_spring.llm.LlmPlatform;
 import com.milvus.vector_spring.project.Project;
 import com.milvus.vector_spring.project.ProjectService;
-import com.milvus.vector_spring.util.properties.KafkaProperties;
-import com.openai.models.embeddings.CreateEmbeddingResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 
+// Kafka publish commented out — ChatTaskConsumer is now called directly via @Async.
+// To restore Kafka: uncomment the fields below, restore publishChatEvent body,
+// and re-enable KafkaConfig + ChatTaskConsumer Kafka annotations.
+//
+// import com.milvus.vector_spring.config.properties.KafkaProperties;
+// import org.springframework.kafka.core.KafkaTemplate;
+
 import java.time.LocalDateTime;
-import java.util.List;
 import java.util.Optional;
 
 @Service
@@ -30,112 +35,77 @@ public class ChatService {
     private final VectorSearchService vectorSearchService;
     private final ContentService contentService;
     private final ChatCompletionService chatCompletionService;
-    private final KafkaTemplate<String, Object> kafkaTemplate;
-    private final KafkaProperties kafkaProperties;
-    private final OpenAiLibraryService openAiLibraryService;
+    private final LlmProviderRouter llmProviderRouter;
+    private final ChatTaskConsumer chatTaskConsumer;
 
+    // private final KafkaTemplate<String, Object> kafkaTemplate; // Kafka disabled
+    // private final KafkaProperties kafkaProperties;             // Kafka disabled
 
-    public ChatResponseDto chat(ChatRequestDto requestDto) {
+    public ChatResponseDto chat(ChatRequestDto request) {
         try {
-            // 1. Project 조회 및 검증
-            Project project = projectService.findOneProjectByKey(requestDto.getProjectKey());
-
-            String secretKey = projectService.decryptOpenAiKey(project);
+            Project project = projectService.findOneProjectByKey(request.projectKey());
+            LlmPlatform platform = project.getLlmPlatform() != null ? project.getLlmPlatform() : LlmPlatform.OPENAI;
+            String apiKey = projectService.decryptApiKey(project);
             LocalDateTime inputTime = LocalDateTime.now();
 
-            // 2. Embedding 생성
-            CreateEmbeddingResponse embedding = openAiLibraryService.embedding(
-                    secretKey, requestDto.getText(), project.getDimensions(), project.getEmbedModel());
+            EmbedResponseDto embedResponse = llmProviderRouter.embed(
+                    EmbedRequestDto.from(platform, apiKey, project.getEmbedModel(), request.text(), project.getDimensions())
+            );
 
-            // 3. Vector 검색
-            VectorSearchResponseDto searchResp = vectorSearchService.searchVector(embedding, project.getId());
-            List<VectorSearchRankDto> rankList = vectorSearchService.convertToRankList(searchResp);
+            VectorSearchResponseDto searchResult = vectorSearchService.search(
+                    embedResponse.embedding(), project.getId()
+            );
 
-            AnswerGenerationResultDto answer = chatCompletionService.generateAnswerWithDecision(
-                    project.getChatModel(), requestDto.getText(), secretKey,
-                    rankList, searchResp, project.getPrompt(), embedding);
+            AnswerGenerationResultDto answer = chatCompletionService.generateAnswer(
+                    platform, project.getChatModel(), request.text(), apiKey,
+                    searchResult.results(), project.getPrompt(), embedResponse.totalTokens()
+            );
 
-            // 5. 답변 여부에 따라 Content 노출
-            Content finalContent = Optional.of(answer)
-                    .filter(result -> !result.isPromptAnswer())
-                    .map(result -> searchResp.getFirstSearchId())
+            ContentDto finalContent = Optional.of(answer)
+                    .filter(a -> !a.isPromptAnswer())
+                    .map(a -> searchResult.firstSearchId())
                     .map(contentService::findOneContentByContentId)
+                    .map(ContentDto::from)
                     .orElse(null);
 
             LocalDateTime outputTime = LocalDateTime.now();
 
-            // 6. 결과 객체 생성
-            ChatProcessResultDto result = createProcessResult(
-                    requestDto.getSessionId(), inputTime, outputTime, searchResp, finalContent, rankList, answer
+            publishChatEvent(project.getKey(), answer.totalToken(), request,
+                    answer.finalAnswer(), finalContent, searchResult.results(), inputTime, outputTime);
+
+            return new ChatResponseDto(
+                    request.projectKey(),
+                    request.sessionId(),
+                    request.text(),
+                    answer.finalAnswer(),
+                    inputTime,
+                    outputTime,
+                    searchResult.results(),
+                    finalContent
             );
 
-            // 7. [Kafka로 전환]
-            publishChatTask(project.getKey(), answer.getTotalToken(), requestDto, result);
-
-            // 8. 응답 반환
-            return buildResponse(requestDto, result);
-
+        } catch (CustomException e) {
+            throw e;
         } catch (Exception e) {
-            throw (e instanceof CustomException) ? (CustomException) e :
-                    new CustomException(ErrorStatus.INTERNAL_SERVER_ERROR, e);
+            throw new CustomException(ErrorStatus.INTERNAL_SERVER_ERROR, e);
         }
     }
 
-    private void publishChatTask(String projectKey, long totalToken, ChatRequestDto requestDto, ChatProcessResultDto result) {
-
-        ContentDto contentDto = (result.getContent() != null) ? new ContentDto(result.getContent()) : null;
-
-        ChatCompleteEvent event = ChatCompleteEvent.builder()
-                .projectKey(projectKey)
-                .totalToken(totalToken)
-                .sessionId(requestDto.getSessionId())
-                .input(requestDto.getText())
-                .output(result.getFinalAnswer())
-                .content(contentDto)
-                .rankList(result.getRankList())
-                .inputDateTime(result.getInputDateTime())
-                .outputDateTime(result.getOutputDateTime())
-                .build();
-
-        kafkaTemplate.send(kafkaProperties.topic(), event.getSessionId(), event);
-    }
-
-    private ChatProcessResultDto createProcessResult(
-            String sessionId,
-            LocalDateTime inputTime,
-            LocalDateTime outputTime,
-            VectorSearchResponseDto searchResp,
-            Content content,
-            List<VectorSearchRankDto> rankList,
-            AnswerGenerationResultDto answer
+    private void publishChatEvent(
+            String projectKey, long totalToken, ChatRequestDto request,
+            String output, ContentDto content,
+            java.util.List<VectorSearchRankDto> rankList,
+            LocalDateTime inputTime, LocalDateTime outputTime
     ) {
-
-        return new ChatProcessResultDto(
-                sessionId,
-                answer.getFinalAnswer(),
-                inputTime,
-                outputTime,
-                content,
-                rankList,
-                searchResp.getSearch()
+        ChatCompleteEvent event = new ChatCompleteEvent(
+                projectKey, totalToken, request.sessionId(),
+                request.text(), output, content, rankList, inputTime, outputTime
         );
-    }
 
+        // Kafka disabled — calling ChatTaskConsumer directly via @Async (virtual thread)
+        chatTaskConsumer.handlePostChatTask(event);
 
-    private ChatResponseDto buildResponse(
-            ChatRequestDto requestDto,
-            ChatProcessResultDto result
-    ) {
-
-        return ChatResponseDto.from(
-                requestDto.getProjectKey(),
-                result.getSessionId(),
-                requestDto.getText(),
-                result.getFinalAnswer(),
-                result.getInputDateTime(),
-                result.getOutputDateTime(),
-                result.getRankList(),
-                result.getContent()
-        );
+        // Kafka publish (re-enable with KafkaConfig + ChatTaskConsumer Kafka annotations):
+        // kafkaTemplate.send(kafkaProperties.topic(), event.sessionId(), event);
     }
 }
