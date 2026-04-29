@@ -1,8 +1,11 @@
 package com.milvus.vector_spring.invite;
 
+import com.milvus.vector_spring.config.jwt.CustomUserDetails;
 import com.milvus.vector_spring.invite.dto.*;
+import com.milvus.vector_spring.user.User;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
@@ -17,37 +20,50 @@ public class InviteController {
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public InviteResponseDto inviteUser(@Validated @RequestBody InviteUserRequestDto request) {
+    public InviteResponseDto inviteUser(
+            @AuthenticationPrincipal User user,
+            @Validated @RequestBody InviteUserRequestDto request
+    ) {
         return InviteResponseDto.from(
-                projectMemberService.addMember(request.inviteId(), request.receiveEmail(), request.projectKey())
+                projectMemberService.addMember(user.getId(), request.receiveEmail(), request.projectKey())
         );
     }
 
     @GetMapping("/list/my")
     @ResponseStatus(HttpStatus.OK)
-    public List<CombinedProjectListResponseDto> listMyProjects(@RequestParam("userId") Long userId) {
-        return projectMemberService.listAllAccessibleProjects(userId);
+    public List<CombinedProjectListResponseDto> listMyProjects(
+            @AuthenticationPrincipal User user
+    ) {
+        return projectMemberService.listAllAccessibleProjects(user.getId());
     }
 
     @GetMapping("/list")
     @ResponseStatus(HttpStatus.OK)
-    public InvitedProjectUserResponseDto listProjectMembers(@RequestParam("key") String projectKey) {
+    public InvitedProjectUserResponseDto listProjectMembers(
+            @RequestParam String projectKey
+    ) {
         return projectMemberService.getProjectMembers(projectKey);
     }
 
     @PatchMapping("/change/master")
     @ResponseStatus(HttpStatus.OK)
-    public UpdateMasterUserResponseDto transferOwnership(@Validated @RequestBody UpdateMasterUserRequestDto request) {
+    public UpdateMasterUserResponseDto transferOwnership(
+            @AuthenticationPrincipal CustomUserDetails user,
+            @Validated @RequestBody UpdateMasterUserRequestDto request
+    ) {
         return projectMemberService.transferOwnership(
-                request.createdUserId(), request.changeMasterUser(), request.projectKey()
+                user.getId(), request.changeMasterUser(), request.projectKey()
         );
     }
 
     @DeleteMapping("/banish")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    public BanishedUserResponseDto removeMember(@Validated @RequestBody BanishUserRequestDto request) {
+    public BanishedUserResponseDto removeMember(
+            @AuthenticationPrincipal CustomUserDetails user,
+            @Validated @RequestBody BanishUserRequestDto request
+    ) {
         ProjectMember removed = projectMemberService.removeMember(
-                request.masterUserEmail(), request.banishedEmail(), request.projectKey()
+                user.getEmail(), request.banishedEmail(), request.projectKey()
         );
         return new BanishedUserResponseDto(removed.getMemberEmail());
     }

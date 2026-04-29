@@ -1,21 +1,22 @@
 package com.milvus.vector_spring.content;
 
+import com.milvus.vector_spring.config.jwt.CustomUserDetails;
 import com.milvus.vector_spring.content.dto.ContentCreateRequestDto;
 import com.milvus.vector_spring.content.dto.ContentResponseDto;
 import com.milvus.vector_spring.content.dto.ContentUpdateRequestDto;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
-import static com.milvus.vector_spring.common.Const.CONTENT_ID;
-import static com.milvus.vector_spring.common.Const.USER_ID;
-
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/content")
+@Slf4j
 public class ContentController {
 
     private final ContentService contentService;
@@ -46,25 +47,27 @@ public class ContentController {
         return ContentResponseDto.from(contentService.findOneContentByContentKey(key));
     }
 
-    @PostMapping("/create")
+    @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public ContentResponseDto createContent(
-            @RequestHeader(USER_ID) long userId,
+            @AuthenticationPrincipal CustomUserDetails user,
             @Validated @RequestBody ContentCreateRequestDto request
     ) {
         return ContentResponseDto.from(
-                contentService.create(userId, request.projectKey(), request.title(), request.answer())
+                contentService.create(user.getId(), request.projectKey(), request.title(), request.answer())
         );
     }
 
-    @PostMapping("/update")
+    @PatchMapping("/{id}")
     @ResponseStatus(HttpStatus.CREATED)
     public ContentResponseDto updateContent(
-            @RequestHeader(CONTENT_ID) long id,
+            @PathVariable Long id,
+            @AuthenticationPrincipal CustomUserDetails user,
             @Validated @RequestBody ContentUpdateRequestDto request
     ) {
+        log.info("id: {}, request: {}", id, request);
         return ContentResponseDto.from(
-                contentService.update(id, request.updatedUserId(), request.title(), request.answer())
+                contentService.update(id, user.getId(), request.title(), request.answer())
         );
     }
 }

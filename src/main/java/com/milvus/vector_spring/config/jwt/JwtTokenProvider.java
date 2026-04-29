@@ -76,12 +76,12 @@ public class JwtTokenProvider {
     public Authentication getAuthentication(String token) {
         Claims claims = getClaims(token);
 
-        User principal = User.builder()
-                .id(claims.get("userId", Long.class))
-                .username(claims.get("userName", String.class))
-                .email(claims.get("email", String.class))
-                .role(claims.get("role", String.class))
-                .build();
+        CustomUserDetails principal = new CustomUserDetails(
+                claims.get("userId", Long.class),
+                claims.get("email", String.class),
+                claims.get("userName", String.class),
+                claims.get("role", String.class)
+        );
 
         return new UsernamePasswordAuthenticationToken(principal, "", principal.getAuthorities());
     }

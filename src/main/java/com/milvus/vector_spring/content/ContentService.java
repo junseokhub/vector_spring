@@ -14,6 +14,7 @@ import com.milvus.vector_spring.project.ProjectService;
 import com.milvus.vector_spring.user.User;
 import com.milvus.vector_spring.user.UserService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -22,6 +23,7 @@ import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class ContentService {
 
     private final ContentRepository contentRepository;
@@ -103,9 +105,10 @@ public class ContentService {
 
         Project project = content.getProject();
 
-        if (!content.getAnswer().equals(answer)) {
-            LlmPlatform platform = project.getLlmPlatform() != null ? project.getLlmPlatform() : LlmPlatform.OPENAI;
+        if (!content.getAnswer().equals(answer) || !content.getTitle().equals(title)) {
             content.update(title, answer, user);
+
+            LlmPlatform platform = project.getLlmPlatform() != null ? project.getLlmPlatform() : LlmPlatform.OPENAI;
             String apiKey = (platform == LlmPlatform.OLLAMA)
                     ? null
                     : encryptionService.decryptData(project.getApiKey());
@@ -115,7 +118,6 @@ public class ContentService {
             );
             insertIntoMilvus(content, embedResponse.embedding(), project.getId());
         }
-
         return content;
     }
 

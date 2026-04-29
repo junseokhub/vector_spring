@@ -70,8 +70,8 @@ public class ProjectService {
     }
 
     @Transactional
-    public Project updateProject(String key, ProjectUpdateRequestDto dto) {
-        User user = userService.findOneUser(dto.updatedUserId());
+    public Project updateProject(Long updateUserId, String key, ProjectUpdateRequestDto dto) {
+        User user = userService.findOneUser(updateUserId);
         Project project = projectRepository.findProjectByKey(key)
                 .orElseThrow(() -> new CustomException(ErrorStatus.NOT_FOUND_PROJECT));
 

@@ -1,8 +1,13 @@
 package com.milvus.vector_spring.project;
 
-import com.milvus.vector_spring.project.dto.*;
+import com.milvus.vector_spring.config.jwt.CustomUserDetails;
+import com.milvus.vector_spring.project.dto.ProjectCreateRequestDto;
+import com.milvus.vector_spring.project.dto.ProjectDeleteRequestDto;
+import com.milvus.vector_spring.project.dto.ProjectResponseDto;
+import com.milvus.vector_spring.project.dto.ProjectUpdateRequestDto;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
@@ -35,16 +40,20 @@ public class ProjectController {
         return ProjectResponseDto.from(projectService.findOneProjectByKey(key));
     }
 
-    @PostMapping("/create")
+    @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public ProjectResponseDto createProject(@Validated @RequestBody ProjectCreateRequestDto request) {
-        return ProjectResponseDto.from(projectService.create(request.createdUserId(), request.name(), request.dimensions()));
+    public ProjectResponseDto createProject(
+            @AuthenticationPrincipal CustomUserDetails user,
+            @Validated @RequestBody ProjectCreateRequestDto request) {
+        return ProjectResponseDto.from(projectService.create(user.getId(), request.name(), request.dimensions()));
     }
 
-    @PostMapping("/update/{key}")
+    @PatchMapping("/{key}")
     @ResponseStatus(HttpStatus.OK)
-    public ProjectResponseDto updateProject(@PathVariable String key, @Validated @RequestBody ProjectUpdateRequestDto request) {
-        return ProjectResponseDto.from(projectService.updateProject(key, request));
+    public ProjectResponseDto updateProject(
+            @AuthenticationPrincipal CustomUserDetails user,
+            @PathVariable String key, @Validated @RequestBody ProjectUpdateRequestDto request) {
+        return ProjectResponseDto.from(projectService.updateProject(user.getId(), key, request));
     }
 
     @DeleteMapping
