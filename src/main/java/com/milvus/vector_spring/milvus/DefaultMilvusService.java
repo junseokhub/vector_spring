@@ -11,6 +11,7 @@ import io.milvus.v2.common.DataType;
 import io.milvus.v2.common.IndexParam;
 import io.milvus.v2.service.collection.request.*;
 import io.milvus.v2.service.rbac.request.CreateUserReq;
+import io.milvus.v2.service.vector.request.DeleteReq;
 import io.milvus.v2.service.vector.request.SearchReq;
 import io.milvus.v2.service.vector.request.UpsertReq;
 import io.milvus.v2.service.vector.request.data.BaseVector;
@@ -105,6 +106,18 @@ public class DefaultMilvusService implements MilvusService {
         try {
             client.dropCollection(DropCollectionReq.builder()
                     .collectionName(collectionName(id))
+                    .build());
+        } catch (Exception e) {
+            throw new CustomException(ErrorStatus.MILVUS_DELETE_ERROR);
+        }
+    }
+
+    @Override
+    public void deleteDocument(long documentId, Long dbKey) {
+        try {
+            client.delete(DeleteReq.builder()
+                    .collectionName(collectionName(dbKey))
+                    .ids(List.of(documentId))
                     .build());
         } catch (Exception e) {
             throw new CustomException(ErrorStatus.MILVUS_DELETE_ERROR);

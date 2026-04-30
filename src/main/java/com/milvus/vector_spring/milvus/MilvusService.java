@@ -14,6 +14,8 @@ public interface MilvusService {
 
     void deleteCollection(long id);
 
+    void deleteDocument(long documentId, Long dbKey);
+
     boolean hasCollection();
 
     SearchResp vectorSearch(List<Float> vectorData, Long dbKey);

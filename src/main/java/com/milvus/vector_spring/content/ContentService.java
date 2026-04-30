@@ -27,11 +27,13 @@ import java.util.UUID;
 public class ContentService {
 
     private final ContentRepository contentRepository;
+    private final ContentChunkRepository contentChunkRepository;
     private final UserService userService;
     private final ProjectService projectService;
     private final EncryptionService encryptionService;
     private final LlmProviderRouter llmProviderRouter;
     private final MilvusService milvusService;
+    private final ChunkingService chunkingService;
 
     public List<Content> findAllContent() {
         return contentRepository.findAll();
@@ -55,6 +57,17 @@ public class ContentService {
         return contentRepository.findByProjectKey(projectKey);
     }
 
+    /**
+     * Resolves the parent Content from a Milvus search result id.
+     * With chunking: id == ContentChunk.id → look up chunk → get content.
+     * Fallback for pre-chunking data: id == Content.id.
+     */
+    public Content findContentBySearchId(Long searchId) {
+        return contentChunkRepository.findById(searchId)
+                .map(ContentChunk::getContent)
+                .orElseGet(() -> contentRepository.findById(searchId).orElse(null));
+    }
+
     @Transactional
     public Content create(long userId, String projectKey, String title, String answer) {
         User user = userService.findOneUser(userId);
@@ -73,6 +86,7 @@ public class ContentService {
         String apiKey = (platform == LlmPlatform.OLLAMA)
                 ? null
                 : encryptionService.decryptData(project.getApiKey());
+
         Content content = Content.builder()
                 .key(UUID.randomUUID().toString())
                 .title(title)
@@ -82,17 +96,8 @@ public class ContentService {
                 .updatedBy(user)
                 .build();
 
-        String embeddingText = content.getTitle() + "\n" + content.getAnswer();
-        EmbedResponseDto embedResponse = llmProviderRouter.embed(
-                EmbedRequestDto.from(platform, apiKey, project.getEmbedModel(), embeddingText, project.getDimensions())
-        );
-
-        if (embedResponse.embedding() == null || embedResponse.embedding().isEmpty()) {
-            throw new CustomException(ErrorStatus.MILVUS_DATABASE_ERROR);
-        }
-
         Content savedContent = contentRepository.save(content);
-        insertIntoMilvus(savedContent, embedResponse.embedding(), project.getId());
+        embedAndIndexChunks(savedContent, apiKey, platform, project);
 
         return savedContent;
     }
@@ -108,26 +113,37 @@ public class ContentService {
         if (!content.getAnswer().equals(answer) || !content.getTitle().equals(title)) {
             content.update(title, answer, user);
 
+            deleteChunksFromMilvus(content, project.getId());
+            contentChunkRepository.deleteByContent(content);
+
             LlmPlatform platform = project.getLlmPlatform() != null ? project.getLlmPlatform() : LlmPlatform.OPENAI;
             String apiKey = (platform == LlmPlatform.OLLAMA)
                     ? null
                     : encryptionService.decryptData(project.getApiKey());
-            String embeddingText = content.getTitle() + "\n" + content.getAnswer();
-            EmbedResponseDto embedResponse = llmProviderRouter.embed(
-                    EmbedRequestDto.from(platform, apiKey, project.getEmbedModel(), embeddingText, project.getDimensions())
-            );
-            insertIntoMilvus(content, embedResponse.embedding(), project.getId());
+
+            embedAndIndexChunks(content, apiKey, platform, project);
         }
         return content;
     }
 
-    private void insertIntoMilvus(Content content, List<Float> vector, Long dbKey) {
-        try {
-            milvusService.upsertCollection(content.getId(),
-                    new InsertRequestDto(content.getId(), vector, content.getTitle(), content.getAnswer()),
-                    dbKey);
-        } catch (Exception e) {
-            throw new CustomException(ErrorStatus.MILVUS_DATABASE_ERROR);
+    private void embedAndIndexChunks(Content content, String apiKey, LlmPlatform platform, Project project) {
+        List<String> chunkTexts = chunkingService.chunk(content.getTitle() + "\n" + content.getAnswer());
+        for (int i = 0; i < chunkTexts.size(); i++) {
+            ContentChunk chunk = contentChunkRepository.save(ContentChunk.of(content, i, chunkTexts.get(i)));
+            EmbedResponseDto embedResponse = llmProviderRouter.embed(
+                    EmbedRequestDto.from(platform, apiKey, project.getEmbedModel(), chunk.getChunkText(), project.getDimensions())
+            );
+            if (embedResponse.embedding() == null || embedResponse.embedding().isEmpty()) {
+                throw new CustomException(ErrorStatus.MILVUS_DATABASE_ERROR);
+            }
+            milvusService.upsertCollection(chunk.getId(),
+                    new InsertRequestDto(chunk.getId(), embedResponse.embedding(), content.getTitle(), chunk.getChunkText()),
+                    project.getId());
         }
+    }
+
+    private void deleteChunksFromMilvus(Content content, Long dbKey) {
+        contentChunkRepository.findByContent(content)
+                .forEach(chunk -> milvusService.deleteDocument(chunk.getId(), dbKey));
     }
 }

@@ -11,6 +11,7 @@ import io.milvus.v2.common.DataType;
 import io.milvus.v2.common.IndexParam;
 import io.milvus.v2.service.collection.request.*;
 import io.milvus.v2.service.vector.request.AnnSearchReq;
+import io.milvus.v2.service.vector.request.DeleteReq;
 import io.milvus.v2.service.vector.request.HybridSearchReq;
 import io.milvus.v2.service.vector.request.SearchReq;
 import io.milvus.v2.service.vector.request.UpsertReq;
@@ -104,7 +105,9 @@ public class DefaultHybridMilvusService implements MilvusService {
             SparseFloatVec sparseVec = computeSparseVector(dto.title() + " " + dto.answer());
 
             JsonObject sparseJson = new JsonObject();
-            sparseVec.getData().forEach((dim, val) -> sparseJson.addProperty(String.valueOf(dim), val));
+            @SuppressWarnings("unchecked")
+            SortedMap<Long, Float> sparseData = (SortedMap<Long, Float>) sparseVec.getData();
+            sparseData.forEach((dim, val) -> sparseJson.addProperty(String.valueOf(dim), val));
 
             JsonObject dataObject = new JsonObject();
             JsonArray vectorArray = new JsonArray();
@@ -129,6 +132,18 @@ public class DefaultHybridMilvusService implements MilvusService {
         try {
             client.dropCollection(DropCollectionReq.builder()
                     .collectionName(collectionName(id))
+                    .build());
+        } catch (Exception e) {
+            throw new CustomException(ErrorStatus.MILVUS_DELETE_ERROR);
+        }
+    }
+
+    @Override
+    public void deleteDocument(long documentId, Long dbKey) {
+        try {
+            client.delete(DeleteReq.builder()
+                    .collectionName(collectionName(dbKey))
+                    .ids(List.of(documentId))
                     .build());
         } catch (Exception e) {
             throw new CustomException(ErrorStatus.MILVUS_DELETE_ERROR);
@@ -187,8 +202,8 @@ public class DefaultHybridMilvusService implements MilvusService {
                     .collectionName(collectionName(dbKey))
                     .searchRequests(List.of(denseReq, sparseReq))
                     .ranker(RRFRanker.builder().k(60).build())
-                    .topK(milvusProperties.topK())
-                    .outputFields(List.of("title", "answer"))
+                    .limit(milvusProperties.topK())
+                    .outFields(List.of("title", "answer"))
                     .build());
         } catch (Exception e) {
             log.error("[HybridMilvus] Hybrid search failed: {}", e.getMessage());

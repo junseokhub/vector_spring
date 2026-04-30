@@ -69,7 +69,7 @@ public class ChatService {
             ContentDto finalContent = Optional.of(answer)
                     .filter(a -> !a.isPromptAnswer())
                     .map(a -> searchResult.firstSearchId())
-                    .map(contentService::findOneContentByContentId)
+                    .map(contentService::findContentBySearchId)
                     .map(ContentDto::from)
                     .orElse(null);
 
