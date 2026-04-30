@@ -5,6 +5,7 @@ import com.milvus.vector_spring.common.apipayload.status.ErrorStatus;
 import com.milvus.vector_spring.common.exception.CustomException;
 import com.milvus.vector_spring.content.ContentService;
 import com.milvus.vector_spring.content.dto.ContentDto;
+import com.milvus.vector_spring.llm.dto.ConversationTurn;
 import com.milvus.vector_spring.llm.dto.EmbedRequestDto;
 import com.milvus.vector_spring.llm.dto.EmbedResponseDto;
 import com.milvus.vector_spring.llm.provider.LlmProviderRouter;
@@ -24,6 +25,7 @@ import org.springframework.stereotype.Service;
 // import org.springframework.kafka.core.KafkaTemplate;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 
 @Service
@@ -37,6 +39,7 @@ public class ChatService {
     private final ChatCompletionService chatCompletionService;
     private final LlmProviderRouter llmProviderRouter;
     private final ChatTaskConsumer chatTaskConsumer;
+    private final ConversationHistoryService conversationHistoryService;
 
     // private final KafkaTemplate<String, Object> kafkaTemplate; // Kafka disabled
     // private final KafkaProperties kafkaProperties;             // Kafka disabled
@@ -48,6 +51,8 @@ public class ChatService {
             String apiKey = projectService.decryptApiKey(project);
             LocalDateTime inputTime = LocalDateTime.now();
 
+            List<ConversationTurn> history = conversationHistoryService.getRecentHistory(request.sessionId());
+
             EmbedResponseDto embedResponse = llmProviderRouter.embed(
                     EmbedRequestDto.from(platform, apiKey, project.getEmbedModel(), request.text(), project.getDimensions())
             );
@@ -58,7 +63,7 @@ public class ChatService {
 
             AnswerGenerationResultDto answer = chatCompletionService.generateAnswer(
                     platform, project.getChatModel(), request.text(), apiKey,
-                    searchResult.results(), project.getPrompt(), embedResponse.totalTokens()
+                    searchResult.results(), project.getPrompt(), embedResponse.totalTokens(), history
             );
 
             ContentDto finalContent = Optional.of(answer)

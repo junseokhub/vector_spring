@@ -7,12 +7,12 @@ import com.milvus.vector_spring.common.exception.CustomException;
 import com.milvus.vector_spring.llm.LlmPlatform;
 import com.milvus.vector_spring.llm.dto.ChatCompletionRequestDto;
 import com.milvus.vector_spring.llm.dto.ChatCompletionResponseDto;
+import com.milvus.vector_spring.llm.dto.ConversationTurn;
 import com.milvus.vector_spring.llm.provider.LlmProviderRouter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
-import java.time.LocalDateTime;
 import java.util.List;
 
 @Service
@@ -20,78 +20,76 @@ import java.util.List;
 @Slf4j
 public class DefaultChatCompletionService implements ChatCompletionService {
 
-    private static final double CONFIDENCE_THRESHOLD = 0.5;
+    private static final String DEFAULT_SYSTEM_INSTRUCTION =
+            "You are a helpful assistant. Answer the user's question strictly based on the provided knowledge base. " +
+            "If the knowledge base does not contain relevant information, state that clearly instead of guessing. " +
+            "Always respond in the same language as the user's input.";
 
     private final LlmProviderRouter llmProviderRouter;
 
+    /**
+     * Decision tree:
+     *  1. No vector candidates → no match (don't waste LLM tokens on empty context)
+     *  2. No chat model configured → return top vector result directly
+     *  3. Chat model configured + candidates present → synthesize with LLM over all candidates
+     */
     @Override
     public AnswerGenerationResultDto generateAnswer(
             LlmPlatform platform,
             String chatModel, String userText, String apiKey,
             List<VectorSearchRankDto> candidates, String systemPrompt,
-            long embeddingTokens
+            long embeddingTokens, List<ConversationTurn> history
     ) {
-        // No chat model configured — return best vector search result without calling LLM
+        if (candidates.isEmpty()) {
+            return AnswerGenerationResultDto.noMatch(embeddingTokens);
+        }
         if (chatModel == null || chatModel.isBlank()) {
-            if (!candidates.isEmpty()) {
-                return new AnswerGenerationResultDto(
-                        candidates.get(0).answer(), embeddingTokens, LocalDateTime.now(), false
-                );
-            }
-            return new AnswerGenerationResultDto(
-                    "No matching answer found.", embeddingTokens, LocalDateTime.now(), false
-            );
+            return AnswerGenerationResultDto.fromVector(candidates.get(0).answer(), embeddingTokens);
         }
-
-        boolean isHighConfidence = !candidates.isEmpty() && candidates.get(0).score() > CONFIDENCE_THRESHOLD;
-
-        if (isHighConfidence) {
-            return new AnswerGenerationResultDto(
-                    candidates.get(0).answer(),
-                    embeddingTokens,
-                    LocalDateTime.now(),
-                    false
-            );
-        }
-
-        return callLlm(platform, chatModel, userText, apiKey, candidates, systemPrompt, embeddingTokens);
+        return synthesizeWithLlm(platform, chatModel, userText, apiKey, candidates, systemPrompt, embeddingTokens, history);
     }
 
-    private AnswerGenerationResultDto callLlm(
-            LlmPlatform platform,
-            String chatModel, String userText, String apiKey,
-            List<VectorSearchRankDto> candidates, String systemPrompt,
-            long embeddingTokens
+    private AnswerGenerationResultDto synthesizeWithLlm(
+            LlmPlatform platform, String chatModel, String userText, String apiKey,
+            List<VectorSearchRankDto> candidates, String systemPrompt, long embeddingTokens,
+            List<ConversationTurn> history
     ) {
         try {
-            String resolvedPrompt = (systemPrompt == null || systemPrompt.isBlank())
-                    ? buildDefaultPrompt(userText, candidates.stream().map(VectorSearchRankDto::answer).toList())
-                    : systemPrompt;
-
+            String resolvedSystemMessage = buildSystemMessage(systemPrompt, candidates);
             ChatCompletionResponseDto response = llmProviderRouter.chat(
-                    ChatCompletionRequestDto.from(platform, apiKey, chatModel, userText, resolvedPrompt)
+                    ChatCompletionRequestDto.from(platform, apiKey, chatModel, userText, resolvedSystemMessage, history)
             );
-
-            return new AnswerGenerationResultDto(
-                    response.content(),
-                    embeddingTokens + response.totalTokens(),
-                    LocalDateTime.now(),
-                    true
+            return AnswerGenerationResultDto.fromLlm(
+                    response.content(), embeddingTokens + response.totalTokens()
             );
+        } catch (CustomException e) {
+            throw e;
         } catch (Exception e) {
-            log.error("[ChatCompletion] LLM call failed: {}", e.getMessage(), e);
+            log.error("[ChatCompletion] LLM synthesis failed: {}", e.getMessage(), e);
             throw new CustomException(ErrorStatus.OPEN_AI_ERROR);
         }
     }
 
-    private String buildDefaultPrompt(String userText, List<String> knowledgeBase) {
-        return """
-                You are a helpful assistant. Analyze the user's question and answer based on the provided knowledge base.
-                If the knowledge base does not contain relevant information, inform the user and suggest trying a different question.
-                Always respond in the same language as the user's input.
+    /**
+     * Builds the system message sent to the LLM.
+     * Always injects RAG context so the LLM answers are grounded in knowledge base content.
+     * Custom project prompt (if set) customizes behavior while still receiving the context.
+     */
+    private String buildSystemMessage(String customSystemPrompt, List<VectorSearchRankDto> candidates) {
+        String baseInstruction = (customSystemPrompt != null && !customSystemPrompt.isBlank())
+                ? customSystemPrompt.strip()
+                : DEFAULT_SYSTEM_INSTRUCTION;
 
-                User question: %s
-                Knowledge base: %s
-                """.formatted(userText, knowledgeBase);
+        return baseInstruction + "\n\nRelevant knowledge base:\n" + buildRagContext(candidates);
+    }
+
+    private String buildRagContext(List<VectorSearchRankDto> candidates) {
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < candidates.size(); i++) {
+            VectorSearchRankDto c = candidates.get(i);
+            sb.append("[%d] Topic: %s%n    Information: %s%n%n"
+                    .formatted(i + 1, c.title(), c.answer()));
+        }
+        return sb.toString().strip();
     }
 }

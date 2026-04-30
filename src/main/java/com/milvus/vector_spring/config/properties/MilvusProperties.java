@@ -9,5 +9,6 @@ public record MilvusProperties(
         String token,
         String clusterEndpoint,
         String collectionName,
-        double scoreThreshold
+        double scoreThreshold,
+        int topK
 ) {}

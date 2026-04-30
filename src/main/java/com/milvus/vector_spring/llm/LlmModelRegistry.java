@@ -26,7 +26,8 @@ public class LlmModelRegistry {
             new LlmModelInfo(LlmPlatform.OPENAI, ModelType.EMBED, "text-embedding-ada-002", 1536L, false),
 
             // ── Ollama Chat ────────────────────────────────────────────────────────
-            new LlmModelInfo(LlmPlatform.OLLAMA, ModelType.CHAT, "qwen2:0.5b", null, false),
+            new LlmModelInfo(LlmPlatform.OLLAMA, ModelType.CHAT, "llama3.2:3b",    null, false),
+            new LlmModelInfo(LlmPlatform.OLLAMA, ModelType.CHAT, "gemma3:4b",      null, false),
 
 
             // ── Ollama Embed ───────────────────────────────────────────────────────

@@ -2,7 +2,6 @@ package com.milvus.vector_spring.project;
 
 import com.milvus.vector_spring.config.jwt.CustomUserDetails;
 import com.milvus.vector_spring.project.dto.ProjectCreateRequestDto;
-import com.milvus.vector_spring.project.dto.ProjectDeleteRequestDto;
 import com.milvus.vector_spring.project.dto.ProjectResponseDto;
 import com.milvus.vector_spring.project.dto.ProjectUpdateRequestDto;
 import lombok.RequiredArgsConstructor;
@@ -56,9 +55,11 @@ public class ProjectController {
         return ProjectResponseDto.from(projectService.updateProject(user.getId(), key, request));
     }
 
-    @DeleteMapping
+    @DeleteMapping("/{key}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void deleteProject(@RequestBody ProjectDeleteRequestDto request) {
-        projectService.delete(request.userId(), request.key());
+    public void deleteProject(
+            @AuthenticationPrincipal CustomUserDetails user,
+            @PathVariable String key) {
+        projectService.delete(user.getId(), key);
     }
 }

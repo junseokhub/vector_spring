@@ -52,8 +52,8 @@ public class DefaultMilvusService implements MilvusService {
             CreateCollectionReq.CollectionSchema schema = CreateCollectionReq.CollectionSchema.builder().build();
             schema.addField(AddFieldReq.builder().fieldName("id").dataType(DataType.Int64).isPrimaryKey(true).autoID(false).build());
             schema.addField(AddFieldReq.builder().fieldName("vector").dataType(DataType.FloatVector).dimension(dimension).build());
-            schema.addField(AddFieldReq.builder().fieldName("title").dataType(DataType.VarChar).maxLength(128).build());
-            schema.addField(AddFieldReq.builder().fieldName("answer").dataType(DataType.VarChar).maxLength(dimension).build());
+            schema.addField(AddFieldReq.builder().fieldName("title").dataType(DataType.VarChar).maxLength(512).build());
+            schema.addField(AddFieldReq.builder().fieldName("answer").dataType(DataType.VarChar).maxLength(65535).build());
 
             client.createCollection(CreateCollectionReq.builder()
                     .collectionName(collectionName(dbKey))
@@ -126,7 +126,7 @@ public class DefaultMilvusService implements MilvusService {
             return client.search(SearchReq.builder()
                     .collectionName(collectionName(dbKey))
                     .data(baseVectors)
-                    .limit(5)
+                    .limit(milvusProperties.topK())
                     .searchParams(Map.of("metric_type", "COSINE", "ef", 300))
                     .outputFields(Arrays.asList("title", "answer"))
                     .build());

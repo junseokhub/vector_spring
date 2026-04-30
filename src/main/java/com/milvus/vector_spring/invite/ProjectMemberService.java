@@ -88,7 +88,7 @@ public class ProjectMemberService {
     public InvitedProjectUserResponseDto getProjectMembers(String projectKey) {
         List<ProjectMember> members = projectMemberRepository.findAllByProjectKeyWithDetails(projectKey);
         if (members.isEmpty()) {
-            return null;
+            return new InvitedProjectUserResponseDto(projectKey, null, List.of());
         }
         return InvitedProjectUserResponseDto.from(projectKey, members);
     }

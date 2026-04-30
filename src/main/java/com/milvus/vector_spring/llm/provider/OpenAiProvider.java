@@ -14,6 +14,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;
 
+import com.milvus.vector_spring.llm.dto.ConversationTurn;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -43,6 +45,9 @@ public class OpenAiProvider implements LlmProvider {
             List<Map<String, String>> messages = new ArrayList<>();
             if (request.systemMessage() != null && !request.systemMessage().isBlank()) {
                 messages.add(Map.of("role", "system", "content", request.systemMessage()));
+            }
+            for (ConversationTurn turn : request.history()) {
+                messages.add(Map.of("role", turn.role(), "content", turn.content()));
             }
             messages.add(Map.of("role", "user", "content", request.userMessage()));
 

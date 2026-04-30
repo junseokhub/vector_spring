@@ -2,7 +2,6 @@ package com.milvus.vector_spring.invite;
 
 import com.milvus.vector_spring.config.jwt.CustomUserDetails;
 import com.milvus.vector_spring.invite.dto.*;
-import com.milvus.vector_spring.user.User;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -21,7 +20,7 @@ public class InviteController {
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public InviteResponseDto inviteUser(
-            @AuthenticationPrincipal User user,
+            @AuthenticationPrincipal CustomUserDetails user,
             @Validated @RequestBody InviteUserRequestDto request
     ) {
         return InviteResponseDto.from(
@@ -32,7 +31,7 @@ public class InviteController {
     @GetMapping("/list/my")
     @ResponseStatus(HttpStatus.OK)
     public List<CombinedProjectListResponseDto> listMyProjects(
-            @AuthenticationPrincipal User user
+            @AuthenticationPrincipal CustomUserDetails user
     ) {
         return projectMemberService.listAllAccessibleProjects(user.getId());
     }
