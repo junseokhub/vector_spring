@@ -5,5 +5,5 @@ import com.milvus.vector_spring.chat.dto.VectorSearchResponseDto;
 import java.util.List;
 
 public interface VectorSearchService {
-    VectorSearchResponseDto search(List<Float> embedding, Long projectId);
+    VectorSearchResponseDto search(List<Float> embedding, String queryText, Long projectId);
 }

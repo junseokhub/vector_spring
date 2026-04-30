@@ -58,7 +58,7 @@ public class ChatService {
             );
 
             VectorSearchResponseDto searchResult = vectorSearchService.search(
-                    embedResponse.embedding(), project.getId()
+                    embedResponse.embedding(), request.text(), project.getId()
             );
 
             AnswerGenerationResultDto answer = chatCompletionService.generateAnswer(

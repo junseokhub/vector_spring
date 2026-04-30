@@ -3,7 +3,9 @@
     "allow": [
       "Bash(./gradlew build *)",
       "Bash(git add *)",
-      "Bash(git commit -m 'fix: 멀티턴 *)"
+      "Bash(git commit -m 'fix: 멀티턴 *)",
+      "Bash(git push *)",
+      "Bash(git commit -m 'feat: hybrid search *)"
     ]
   }
 }

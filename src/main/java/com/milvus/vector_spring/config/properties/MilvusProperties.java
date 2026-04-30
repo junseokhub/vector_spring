@@ -10,5 +10,8 @@ public record MilvusProperties(
         String clusterEndpoint,
         String collectionName,
         double scoreThreshold,
-        int topK
-) {}
+        int topK,
+        SearchMode searchMode
+) {
+    public enum SearchMode { DENSE, HYBRID }
+}

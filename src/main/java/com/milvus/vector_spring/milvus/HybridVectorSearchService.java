@@ -11,17 +11,22 @@ import org.springframework.stereotype.Service;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * Hybrid vector search: dense (COSINE) + sparse TF keyword search (IP) fused via RRF.
+ * Active only when milvus.search-mode=HYBRID.
+ * Requires collections created by DefaultHybridMilvusService (includes sparse_vector field).
+ */
 @Service
 @RequiredArgsConstructor
-@ConditionalOnProperty(name = "milvus.search-mode", havingValue = "DENSE", matchIfMissing = true)
-public class DefaultVectorSearchService implements VectorSearchService {
+@ConditionalOnProperty(name = "milvus.search-mode", havingValue = "HYBRID")
+public class HybridVectorSearchService implements VectorSearchService {
 
-    private final MilvusService milvusService;
+    private final DefaultHybridMilvusService hybridMilvusService;
     private final MilvusProperties milvusProperties;
 
     @Override
     public VectorSearchResponseDto search(List<Float> embedding, String queryText, Long projectId) {
-        SearchResp searchResp = milvusService.vectorSearch(embedding, projectId);
+        SearchResp searchResp = hybridMilvusService.hybridSearch(embedding, queryText, projectId);
         double threshold = milvusProperties.scoreThreshold();
 
         List<VectorSearchRankDto> results = searchResp.getSearchResults().stream()
